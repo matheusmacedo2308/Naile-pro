@@ -1,0 +1,73 @@
+/* Minha Agenda Nail — design tokens
+   Direção: delicado e feminino, rosa + dourado.
+   Toda a UI já consome estas variáveis (var(--primary), var(--accent) etc.),
+   então qualquer ajuste de tom deve ser feito aqui, num só lugar. */
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,400;0,500;0,600;1,500&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  /* Base */
+  --background: #FFF8F6;       /* branco quente, quase um "leite morno" — nunca branco puro */
+  --foreground: #4A2733;       /* vinho profundo — substitui o preto, mais quente e feminino */
+  --card: #FFFFFF;              /* cartões em branco puro, pra "flutuar" sobre o fundo blush */
+  --border: #F0DCE1;            /* rosa pétala bem clarinho */
+
+  /* Marca */
+  --primary: #C8607D;           /* rosewood — cor de ação principal (botões, seleção) */
+  --primary-foreground: #FFFBF9;
+  --secondary: #F7E2E6;         /* petala — fundo de abas/pills inativos */
+  --muted: #FBEFEE;             /* fundo suave para blocos de destaque leve */
+  --muted-foreground: #93707A;  /* rosa-taupe — textos secundários */
+
+  --accent: #B8863E;            /* dourado envelhecido — links, selos, o "toque de luxo" */
+  --accent-foreground: #FFFFFF;
+
+  --ring: #C8607D;
+
+  /* Tipografia — já usada em todo o app */
+  --font-display: 'Cormorant', serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  margin: 0;
+}
+
+/* Foco visível — acessibilidade, nunca remover o outline sem substituir */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Elemento de assinatura do app: um filete dourado que "acende" no centro —
+   usado sob títulos de seção para marcar o toque de luxo delicado sem
+   virar um gradiente decorativo genérico. */
+.naile-gold-rule {
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(90deg, transparent, var(--accent) 50%, transparent);
+  opacity: 0.55;
+  border: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
