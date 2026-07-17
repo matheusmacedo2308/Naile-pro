@@ -193,11 +193,15 @@ export function AdminPanel({
   }
 
   const [subscribing, setSubscribing] = useState(false);
+  const [subscribeErr, setSubscribeErr] = useState<string | null>(null);
   const handleSubscribe = async () => {
     if (!onSubscribe) return;
     setSubscribing(true);
+    setSubscribeErr(null);
     try {
       await onSubscribe();
+    } catch (e: any) {
+      setSubscribeErr(e.message || "Erro ao abrir o checkout. Tente novamente.");
     } finally {
       setSubscribing(false);
     }
@@ -215,6 +219,9 @@ export function AdminPanel({
         </h2>
         <div className="p-4 rounded-sm border text-sm" style={{ background: "#fef2f2", borderColor: "#fecaca", color: "#dc2626" }}>
           <p className="mb-3 font-medium">{trialBanner?.text || "Sua assinatura precisa ser confirmada para usar o painel."}</p>
+          {subscribeErr && (
+            <p className="mb-3 text-xs font-medium" style={{ color: "#dc2626" }}>{subscribeErr}</p>
+          )}
           {onSubscribe && trialBanner?.showSubscribeButton !== false && (
             <button
               onClick={handleSubscribe}
@@ -248,6 +255,9 @@ export function AdminPanel({
             }
           >
             <p className="mb-2">{trialBanner.text}</p>
+            {subscribeErr && (
+              <p className="mb-2 text-xs font-medium" style={{ color: "#dc2626" }}>{subscribeErr}</p>
+            )}
             {trialBanner.showSubscribeButton && onSubscribe && (
               <button
                 onClick={handleSubscribe}
