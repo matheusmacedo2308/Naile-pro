@@ -212,7 +212,7 @@ async function checkSubscriptionActive(businessId: string): Promise<{ blocked: b
 }
 
 // Health check
-app.get('/', (c) => c.text('Minha Agenda Nail API is running!'));
+app.get('/', (c) => c.text('Nailê Pro API is running!'));
 
 // ─────────────────────────────────────────────────────────────────────────
 // ENCRYPTION AT REST for payment provider credentials
@@ -345,25 +345,31 @@ async function createPlatformSubscription(opts: { businessId: string; payerEmail
   if (!platformToken) {
     throw new Error('Assinatura da plataforma ainda não configurada (PLATFORM_MERCADOPAGO_ACCESS_TOKEN ausente).');
   }
+  const requestBody = {
+    reason: 'Assinatura mensal — Nailê Pro',
+    external_reference: opts.businessId,
+    payer_email: opts.payerEmail,
+    back_url: opts.backUrl,
+    auto_recurring: {
+      frequency: 1,
+      frequency_type: 'months',
+      transaction_amount: PLATFORM_SUBSCRIPTION_PRICE,
+      currency_id: 'BRL',
+    },
+    status: 'pending',
+  };
   const res = await fetch('https://api.mercadopago.com/preapproval', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${platformToken}` },
-    body: JSON.stringify({
-      reason: 'Assinatura mensal — Minha Agenda Nail',
-      external_reference: opts.businessId,
-      payer_email: opts.payerEmail,
-      back_url: opts.backUrl,
-      auto_recurring: {
-        frequency: 1,
-        frequency_type: 'months',
-        transaction_amount: PLATFORM_SUBSCRIPTION_PRICE,
-        currency_id: 'BRL',
-      },
-      status: 'pending',
-    }),
+    body: JSON.stringify(requestBody),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data?.message || 'Falha ao criar assinatura da plataforma.');
+  if (!res.ok) {
+    console.error('[platform subscription] Mercado Pago rejected the preapproval request.');
+    console.error('[platform subscription] request body sent:', JSON.stringify(requestBody));
+    console.error('[platform subscription] Mercado Pago response:', JSON.stringify(data));
+    throw new Error(data?.message || 'Falha ao criar assinatura da plataforma.');
+  }
   return { checkoutUrl: data.init_point as string, preapprovalId: data.id as string };
 }
 
@@ -1136,6 +1142,40 @@ app.post('/upload-photo', async (c) => {
   }
 });
 
+// Mark an appointment as completed (the service was actually done) — moves
+// it into the owner's history view instead of the active agenda.
+app.post('/appointments/complete', async (c) => {
+  try {
+    const { user, profile, error, status } = await getAuthedProfile(c);
+    if (error) return c.json({ error }, status);
+
+    const { key } = await c.req.json();
+    if (!key) return c.json({ error: 'Agendamento não informado.' }, 400);
+
+    const appt = await kv.get(key);
+    if (!appt) return c.json({ error: 'Agendamento não encontrado.' }, 404);
+
+    const isPlatformAdmin = user.email === PLATFORM_ADMIN_EMAIL;
+    const isOwnerOfThisBusiness = profile?.role === 'owner' && profile.businessId === appt.businessId;
+    if (!isPlatformAdmin && !isOwnerOfThisBusiness) {
+      return c.json({ error: 'Você não tem permissão para concluir este agendamento.' }, 403);
+    }
+    if (!isPlatformAdmin) {
+      const sub = await checkSubscriptionActive(appt.businessId);
+      if (sub.blocked) return c.json({ error: sub.error }, 402);
+    }
+
+    appt.status = 'concluido';
+    appt.completedAt = new Date().toISOString();
+    await kv.set(key, appt);
+
+    return c.json({ success: true, appointment: appt });
+  } catch (error) {
+    console.error('Error completing appointment:', error);
+    return c.json({ error: 'Falha ao concluir o agendamento.' }, 500);
+  }
+});
+
 // Cancel an appointment and optionally leave a message for the client.
 // Only the business's own owner (or the platform admin) can do this.
 app.post('/appointments/cancel', async (c) => {
@@ -1178,40 +1218,6 @@ app.post('/appointments/cancel', async (c) => {
   } catch (error) {
     console.error('Error cancelling appointment with message:', error);
     return c.json({ error: 'Falha ao cancelar o agendamento.' }, 500);
-  }
-});
-
-// Mark an appointment as done ("a cliente já fez a unha"). Unlike cancel,
-// this keeps the record — it just flips its status so the frontend can
-// move it out of the upcoming agenda and into the history list.
-app.post('/appointments/complete', async (c) => {
-  try {
-    const { user, profile, error, status } = await getAuthedProfile(c);
-    if (error) return c.json({ error }, status);
-
-    const { key } = await c.req.json();
-    if (!key) return c.json({ error: 'Agendamento não informado.' }, 400);
-
-    const appt = await kv.get(key);
-    if (!appt) return c.json({ error: 'Agendamento não encontrado.' }, 404);
-
-    const isPlatformAdmin = user.email === PLATFORM_ADMIN_EMAIL;
-    const isOwnerOfThisBusiness = profile?.role === 'owner' && profile.businessId === appt.businessId;
-    if (!isPlatformAdmin && !isOwnerOfThisBusiness) {
-      return c.json({ error: 'Você não tem permissão para finalizar este agendamento.' }, 403);
-    }
-
-    const updated = {
-      ...appt,
-      status: 'concluido',
-      completedAt: new Date().toISOString(),
-    };
-    await kv.set(key, updated);
-
-    return c.json({ success: true, appointment: updated });
-  } catch (error) {
-    console.error('Error completing appointment:', error);
-    return c.json({ error: 'Falha ao finalizar o agendamento.' }, 500);
   }
 });
 
