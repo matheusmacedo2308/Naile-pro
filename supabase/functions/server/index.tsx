@@ -1248,7 +1248,7 @@ app.post('/appointments/resume-checkout', async (c) => {
     return c.json({ success: true, checkoutUrl: checkout.checkoutUrl });
   } catch (error) {
     console.error('Error resuming checkout:', error);
-    return c.json({ error: 'Não foi possível reabrir o pagamento.' }, 500);
+    return c.json({ error: `Não foi possível reabrir o pagamento: ${(error as Error).message}` }, 500);
   }
 });
 
