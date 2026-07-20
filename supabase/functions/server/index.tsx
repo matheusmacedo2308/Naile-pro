@@ -212,7 +212,7 @@ async function checkSubscriptionActive(businessId: string): Promise<{ blocked: b
 }
 
 // Health check
-app.get('/', (c) => c.text('Nailê Pro API is running!'));
+app.get('/', (c) => c.text('Minha Agenda Nail API is running!'));
 
 // ─────────────────────────────────────────────────────────────────────────
 // ENCRYPTION AT REST for payment provider credentials
@@ -346,7 +346,7 @@ async function createPlatformSubscription(opts: { businessId: string; payerEmail
     throw new Error('Assinatura da plataforma ainda não configurada (PLATFORM_MERCADOPAGO_ACCESS_TOKEN ausente).');
   }
   const requestBody = {
-    reason: 'Assinatura mensal — Nailê Pro',
+    reason: 'Assinatura mensal — Minha Agenda Nail',
     external_reference: opts.businessId,
     payer_email: opts.payerEmail,
     back_url: opts.backUrl,

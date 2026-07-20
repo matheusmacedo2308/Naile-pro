@@ -662,19 +662,6 @@ function AppInner() {
     }
   };
 
-  // Marks an appointment as done (client already had her nails done). Keeps
-  // the record — it just flips status so it drops into the history list
-  // instead of the upcoming agenda.
-  const completeAppointment = async (appt: any) => {
-    const res = await authedFetch(`${SERVER_URL}/appointments/complete`, {
-      method: "POST",
-      body: JSON.stringify({ key: apptKey(appt) }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Erro ao finalizar.");
-    await fetchAppointments();
-  };
-
   // Opens WhatsApp with a day-before reminder pre-filled, so the owner just
   // has to glance at the "amanhã" list once a day and tap send for each.
   const sendReminder = (appt: any) => {
@@ -795,6 +782,26 @@ function AppInner() {
       setApptActionError(err.message || "Erro ao cancelar agendamento.");
     } finally {
       setCancelingKey(null);
+    }
+  };
+
+  const [completingKey, setCompletingKey] = useState<string | null>(null);
+  const completeAppointment = async (appt: any) => {
+    const key = apptKey(appt);
+    setCompletingKey(key);
+    setApptActionError(null);
+    try {
+      const res = await authedFetch(`${SERVER_URL}/appointments/complete`, {
+        method: "POST",
+        body: JSON.stringify({ key }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao concluir.");
+      await fetchAppointments();
+    } catch (err: any) {
+      setApptActionError(err.message || "Erro ao concluir agendamento.");
+    } finally {
+      setCompletingKey(null);
     }
   };
 
@@ -1242,8 +1249,6 @@ function AppInner() {
                 </p>
               </div>
             </motion.div>
-
-            <div className="naile-gold-rule mb-8" style={{ width: 64, margin: "0 auto 2rem" }} />
 
             {/* Quick Book */}
             <div className="px-4 mb-8">
@@ -1947,6 +1952,7 @@ function AppInner() {
             uploadPhoto={uploadPhoto}
             cancelWithMessage={cancelWithMessage}
             onComplete={completeAppointment}
+            completingKey={completingKey}
             sendReminder={sendReminder}
             onReschedule={openReschedule}
             apptKey={apptKey}
