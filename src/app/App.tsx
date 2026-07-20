@@ -195,6 +195,7 @@ function AppInner() {
 
   // Cancel / reschedule state
   const [cancelingKey, setCancelingKey] = useState<string | null>(null);
+  const [resumingKey, setResumingKey] = useState<string | null>(null);
   const [reschedulingAppt, setReschedulingAppt] = useState<any>(null);
   const [reschedDate, setReschedDate] = useState<{ day: number; month: number; year: number } | null>(null);
   const [reschedTime, setReschedTime] = useState<string | null>(null);
@@ -662,6 +663,33 @@ function AppInner() {
     }
   };
 
+  // Client left the payment page without finishing — this asks the backend
+  // for a fresh checkout link on the SAME pending appointment, so we send
+  // them back to pay instead of making them book again.
+  const resumeCheckout = async (appt: any) => {
+    const res = await fetch(`${SERVER_URL}/appointments/resume-checkout`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: apptKey(appt), returnUrl: window.location.href }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Não foi possível reabrir o pagamento.");
+    if (data.checkoutUrl) window.location.href = data.checkoutUrl;
+  };
+
+  // Marks an appointment as done (client already had her nails done). Keeps
+  // the record — it just flips status so it drops into the history list
+  // instead of the upcoming agenda.
+  const completeAppointment = async (appt: any) => {
+    const res = await authedFetch(`${SERVER_URL}/appointments/complete`, {
+      method: "POST",
+      body: JSON.stringify({ key: apptKey(appt) }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Erro ao finalizar.");
+    await fetchAppointments();
+  };
+
   // Opens WhatsApp with a day-before reminder pre-filled, so the owner just
   // has to glance at the "amanhã" list once a day and tap send for each.
   const sendReminder = (appt: any) => {
@@ -785,25 +813,21 @@ function AppInner() {
     }
   };
 
-  const [completingKey, setCompletingKey] = useState<string | null>(null);
-  const completeAppointment = async (appt: any) => {
+  const handleResumeCheckout = async (appt: any) => {
     const key = apptKey(appt);
-    setCompletingKey(key);
+    setResumingKey(key);
     setApptActionError(null);
     try {
-      const res = await authedFetch(`${SERVER_URL}/appointments/complete`, {
-        method: "POST",
-        body: JSON.stringify({ key }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Erro ao concluir.");
-      await fetchAppointments();
+      await resumeCheckout(appt);
     } catch (err: any) {
-      setApptActionError(err.message || "Erro ao concluir agendamento.");
-    } finally {
-      setCompletingKey(null);
+      setApptActionError(err.message || "Erro ao reabrir o pagamento.");
+      setResumingKey(null);
     }
+    // No `finally` clearing resumingKey on success: the page is about to
+    // navigate away to the checkout, so leaving the button in its "loading"
+    // state avoids a flash back to normal right before the redirect fires.
   };
+
 
   const openReschedule = (appt: any) => {
     setReschedulingAppt(appt);
@@ -1249,6 +1273,8 @@ function AppInner() {
                 </p>
               </div>
             </motion.div>
+
+            <div className="naile-gold-rule mb-8" style={{ width: 64, margin: "0 auto 2rem" }} />
 
             {/* Quick Book */}
             <div className="px-4 mb-8">
@@ -1869,6 +1895,16 @@ function AppInner() {
                       <div className="flex justify-between items-center mt-3 pt-3 border-t border-border">
                         <span className="text-sm font-medium" style={{ color: "var(--primary)" }}>{appt.service.price}</span>
                         <div className="flex items-center gap-4">
+                          {appt.status === "aguardando_pagamento" && !isOwner && (
+                            <button
+                              onClick={() => handleResumeCheckout(appt)}
+                              disabled={resumingKey === key}
+                              className="flex items-center gap-1 text-xs disabled:opacity-50 transition-colors"
+                              style={{ color: "var(--primary)" }}
+                            >
+                              {resumingKey === key ? "abrindo..." : "continuar pagamento"}
+                            </button>
+                          )}
                           <button
                             onClick={() => openReschedule(appt)}
                             className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -1952,7 +1988,6 @@ function AppInner() {
             uploadPhoto={uploadPhoto}
             cancelWithMessage={cancelWithMessage}
             onComplete={completeAppointment}
-            completingKey={completingKey}
             sendReminder={sendReminder}
             onReschedule={openReschedule}
             apptKey={apptKey}

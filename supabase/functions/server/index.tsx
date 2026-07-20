@@ -345,31 +345,25 @@ async function createPlatformSubscription(opts: { businessId: string; payerEmail
   if (!platformToken) {
     throw new Error('Assinatura da plataforma ainda não configurada (PLATFORM_MERCADOPAGO_ACCESS_TOKEN ausente).');
   }
-  const requestBody = {
-    reason: 'Assinatura mensal — Minha Agenda Nail',
-    external_reference: opts.businessId,
-    payer_email: opts.payerEmail,
-    back_url: opts.backUrl,
-    auto_recurring: {
-      frequency: 1,
-      frequency_type: 'months',
-      transaction_amount: PLATFORM_SUBSCRIPTION_PRICE,
-      currency_id: 'BRL',
-    },
-    status: 'pending',
-  };
   const res = await fetch('https://api.mercadopago.com/preapproval', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${platformToken}` },
-    body: JSON.stringify(requestBody),
+    body: JSON.stringify({
+      reason: 'Assinatura mensal — Minha Agenda Nail',
+      external_reference: opts.businessId,
+      payer_email: opts.payerEmail,
+      back_url: opts.backUrl,
+      auto_recurring: {
+        frequency: 1,
+        frequency_type: 'months',
+        transaction_amount: PLATFORM_SUBSCRIPTION_PRICE,
+        currency_id: 'BRL',
+      },
+      status: 'pending',
+    }),
   });
   const data = await res.json();
-  if (!res.ok) {
-    console.error('[platform subscription] Mercado Pago rejected the preapproval request.');
-    console.error('[platform subscription] request body sent:', JSON.stringify(requestBody));
-    console.error('[platform subscription] Mercado Pago response:', JSON.stringify(data));
-    throw new Error(data?.message || 'Falha ao criar assinatura da plataforma.');
-  }
+  if (!res.ok) throw new Error(data?.message || 'Falha ao criar assinatura da plataforma.');
   return { checkoutUrl: data.init_point as string, preapprovalId: data.id as string };
 }
 
@@ -541,9 +535,6 @@ app.post('/register-business', async (c) => {
     if (!businessName || !ownerName || !email || !password || !cpfCnpj) {
       return c.json({ error: 'Preencha todos os campos da empresa, incluindo CPF/CNPJ.' }, 400);
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@.]+$/.test(email.trim())) {
-      return c.json({ error: 'Email inválido. Confira se não tem espaços ou caracteres extras no final.' }, 400);
-    }
     if (!isValidCpfOrCnpj(cpfCnpj)) {
       return c.json({ error: 'CPF/CNPJ inválido. Confira os números digitados.' }, 400);
     }
@@ -633,9 +624,6 @@ app.post('/register-client', async (c) => {
     const { name, email, password, phone } = await c.req.json();
     if (!name || !email || !password) {
       return c.json({ error: 'Preencha nome, email e senha.' }, 400);
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@.]+$/.test(email.trim())) {
-      return c.json({ error: 'Email inválido. Confira se não tem espaços ou caracteres extras no final.' }, 400);
     }
 
     const { data, error } = await supabase.auth.admin.createUser({
@@ -1148,40 +1136,6 @@ app.post('/upload-photo', async (c) => {
   }
 });
 
-// Mark an appointment as completed (the service was actually done) — moves
-// it into the owner's history view instead of the active agenda.
-app.post('/appointments/complete', async (c) => {
-  try {
-    const { user, profile, error, status } = await getAuthedProfile(c);
-    if (error) return c.json({ error }, status);
-
-    const { key } = await c.req.json();
-    if (!key) return c.json({ error: 'Agendamento não informado.' }, 400);
-
-    const appt = await kv.get(key);
-    if (!appt) return c.json({ error: 'Agendamento não encontrado.' }, 404);
-
-    const isPlatformAdmin = user.email === PLATFORM_ADMIN_EMAIL;
-    const isOwnerOfThisBusiness = profile?.role === 'owner' && profile.businessId === appt.businessId;
-    if (!isPlatformAdmin && !isOwnerOfThisBusiness) {
-      return c.json({ error: 'Você não tem permissão para concluir este agendamento.' }, 403);
-    }
-    if (!isPlatformAdmin) {
-      const sub = await checkSubscriptionActive(appt.businessId);
-      if (sub.blocked) return c.json({ error: sub.error }, 402);
-    }
-
-    appt.status = 'concluido';
-    appt.completedAt = new Date().toISOString();
-    await kv.set(key, appt);
-
-    return c.json({ success: true, appointment: appt });
-  } catch (error) {
-    console.error('Error completing appointment:', error);
-    return c.json({ error: 'Falha ao concluir o agendamento.' }, 500);
-  }
-});
-
 // Cancel an appointment and optionally leave a message for the client.
 // Only the business's own owner (or the platform admin) can do this.
 app.post('/appointments/cancel', async (c) => {
@@ -1224,6 +1178,111 @@ app.post('/appointments/cancel', async (c) => {
   } catch (error) {
     console.error('Error cancelling appointment with message:', error);
     return c.json({ error: 'Falha ao cancelar o agendamento.' }, 500);
+  }
+});
+
+// Client left the payment page before finishing — this regenerates a fresh
+// checkout link for the SAME pending appointment (same deposit amount, same
+// slot) so they don't have to book again from scratch.
+app.post('/appointments/resume-checkout', async (c) => {
+  try {
+    const { key, returnUrl } = await c.req.json();
+    if (!key) return c.json({ error: 'Agendamento não informado.' }, 400);
+
+    const appt = await kv.get(key);
+    if (!appt) return c.json({ error: 'Agendamento não encontrado.' }, 404);
+    if (appt.status !== 'aguardando_pagamento') {
+      return c.json({ error: 'Este agendamento não está mais aguardando pagamento.' }, 400);
+    }
+
+    const business = await kv.get(`business:${appt.businessId}`);
+    const paymentSettings = business?.paymentSettings;
+    if (!paymentSettings?.provider) {
+      return c.json({ error: 'Este estúdio não tem um provedor de pagamento configurado.' }, 400);
+    }
+
+    const origin = c.req.header('origin') || '';
+    let backUrl: string;
+    if (returnUrl && typeof returnUrl === 'string' && origin && returnUrl.startsWith(origin)) {
+      const sep = returnUrl.includes('?') ? '&' : '?';
+      backUrl = `${returnUrl}${sep}pagamento=retorno`;
+    } else {
+      const refererPath = c.req.header('referer')?.replace(/^https?:\/\/[^/]+/, '') || '/';
+      backUrl = `${origin}${refererPath}${refererPath.includes('?') ? '&' : '?'}pagamento=retorno`;
+    }
+
+    let checkout: { checkoutUrl: string };
+    if (paymentSettings.provider === 'mercadopago') {
+      checkout = await createMercadoPagoCheckout({
+        accessToken: await decryptSecret(paymentSettings.mercadopago.accessToken),
+        title: `Sinal — ${appt.service.name}`,
+        amount: appt.depositAmount,
+        externalReference: key,
+        backUrl,
+        businessId: appt.businessId,
+      });
+    } else if (paymentSettings.provider === 'asaas') {
+      checkout = await createAsaasCheckout({
+        apiKey: await decryptSecret(paymentSettings.asaas.apiKey),
+        environment: paymentSettings.asaas.environment,
+        customerName: appt.userEmail || 'Cliente',
+        customerEmail: appt.userEmail,
+        customerPhone: appt.userPhone,
+        title: `Sinal — ${appt.service.name}`,
+        amount: appt.depositAmount,
+        externalReference: key,
+      });
+    } else if (paymentSettings.provider === 'pagbank') {
+      checkout = await createPagBankCheckout({
+        token: await decryptSecret(paymentSettings.pagbank.token),
+        environment: paymentSettings.pagbank.environment,
+        title: `Sinal — ${appt.service.name}`,
+        amount: appt.depositAmount,
+        externalReference: key,
+        businessId: appt.businessId,
+      });
+    } else {
+      return c.json({ error: 'Provedor de pagamento não reconhecido.' }, 400);
+    }
+
+    return c.json({ success: true, checkoutUrl: checkout.checkoutUrl });
+  } catch (error) {
+    console.error('Error resuming checkout:', error);
+    return c.json({ error: 'Não foi possível reabrir o pagamento.' }, 500);
+  }
+});
+
+// Mark an appointment as done ("a cliente já fez a unha"). Unlike cancel,
+// this keeps the record — it just flips its status so the frontend can
+// move it out of the upcoming agenda and into the history list.
+app.post('/appointments/complete', async (c) => {
+  try {
+    const { user, profile, error, status } = await getAuthedProfile(c);
+    if (error) return c.json({ error }, status);
+
+    const { key } = await c.req.json();
+    if (!key) return c.json({ error: 'Agendamento não informado.' }, 400);
+
+    const appt = await kv.get(key);
+    if (!appt) return c.json({ error: 'Agendamento não encontrado.' }, 404);
+
+    const isPlatformAdmin = user.email === PLATFORM_ADMIN_EMAIL;
+    const isOwnerOfThisBusiness = profile?.role === 'owner' && profile.businessId === appt.businessId;
+    if (!isPlatformAdmin && !isOwnerOfThisBusiness) {
+      return c.json({ error: 'Você não tem permissão para finalizar este agendamento.' }, 403);
+    }
+
+    const updated = {
+      ...appt,
+      status: 'concluido',
+      completedAt: new Date().toISOString(),
+    };
+    await kv.set(key, updated);
+
+    return c.json({ success: true, appointment: updated });
+  } catch (error) {
+    console.error('Error completing appointment:', error);
+    return c.json({ error: 'Falha ao finalizar o agendamento.' }, 500);
   }
 });
 
