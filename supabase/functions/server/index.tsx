@@ -541,6 +541,9 @@ app.post('/register-business', async (c) => {
     if (!businessName || !ownerName || !email || !password || !cpfCnpj) {
       return c.json({ error: 'Preencha todos os campos da empresa, incluindo CPF/CNPJ.' }, 400);
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@.]+$/.test(email.trim())) {
+      return c.json({ error: 'Email inválido. Confira se não tem espaços ou caracteres extras no final.' }, 400);
+    }
     if (!isValidCpfOrCnpj(cpfCnpj)) {
       return c.json({ error: 'CPF/CNPJ inválido. Confira os números digitados.' }, 400);
     }
@@ -630,6 +633,9 @@ app.post('/register-client', async (c) => {
     const { name, email, password, phone } = await c.req.json();
     if (!name || !email || !password) {
       return c.json({ error: 'Preencha nome, email e senha.' }, 400);
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@.]+$/.test(email.trim())) {
+      return c.json({ error: 'Email inválido. Confira se não tem espaços ou caracteres extras no final.' }, 400);
     }
 
     const { data, error } = await supabase.auth.admin.createUser({
