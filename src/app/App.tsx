@@ -346,23 +346,28 @@ function AppInner() {
 
   useEffect(() => {
     if (!paymentReturnPending) return;
+    const waitingKey = sessionStorage.getItem("pendingApptKey");
     let attempts = 0;
     const interval = setInterval(async () => {
       attempts += 1;
       const res = await authedFetch(`${API_URL}?businessId=${WORKSPACE_ID}`);
       const data = await res.json().catch(() => ({}));
       const appts = data.appointments || [];
-      const stillPending = appts.some((a: any) => a.status === "aguardando_pagamento");
-      if (!stillPending) {
+
+      // Only celebrate once THIS specific appointment is actually marked
+      // "confirmado" — not just whenever nothing is "aguardando_pagamento"
+      // anymore, since that can also be true for unrelated reasons (e.g. a
+      // different pending booking, or this one still processing).
+      const thisAppt = waitingKey
+        ? appts.find((a: any) => apptKey(a) === waitingKey)
+        : [...appts].filter((a: any) => a.paid && a.paidAt).sort((a: any, b: any) => new Date(b.paidAt).getTime() - new Date(a.paidAt).getTime())[0];
+
+      if (thisAppt && thisAppt.status === "confirmado" && thisAppt.paid) {
         await fetchAppointments();
-        // The most recently paid appointment — that's the one we just
-        // finished paying for.
-        const justPaid = [...appts]
-          .filter((a: any) => a.paid && a.paidAt)
-          .sort((a: any, b: any) => new Date(b.paidAt).getTime() - new Date(a.paidAt).getTime())[0];
-        setConfirmedAppt(justPaid || null);
+        setConfirmedAppt(thisAppt);
         setPaymentReturnPending(false);
         setPaymentJustConfirmed(true);
+        sessionStorage.removeItem("pendingApptKey");
         clearInterval(interval);
       } else if (attempts >= 15) {
         // Stop polling after ~1 minute; the manual "Atualizar" button in the
@@ -674,7 +679,13 @@ function AppInner() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Não foi possível reabrir o pagamento.");
-    if (data.checkoutUrl) window.location.href = data.checkoutUrl;
+    if (data.checkoutUrl) {
+      // Remember exactly which appointment we're paying for, so when the
+      // client comes back we only celebrate once THIS one is confirmed —
+      // not just whenever something in the list stops being pending.
+      sessionStorage.setItem("pendingApptKey", apptKey(appt));
+      window.location.href = data.checkoutUrl;
+    }
   };
 
   // Marks an appointment as done (client already had her nails done). Keeps
@@ -775,6 +786,7 @@ function AppInner() {
         // A deposit is required — send the client to pay. The appointment
         // only becomes "confirmado" (and appears on the salon's agenda)
         // once the payment webhook confirms it.
+        if (data.appointment?.key) sessionStorage.setItem("pendingApptKey", data.appointment.key);
         window.location.href = data.checkoutUrl;
         return;
       }
@@ -1036,7 +1048,7 @@ function AppInner() {
             {authMode === "register" && accountType === "business" && (
               <div>
                 <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1">Nome do Estúdio</label>
-                <input type="text" required value={businessName} onChange={(e) => setBusinessName(e.target.value)} className={inputClass} placeholder="Ex: Studio Bella Unhas" />
+                <input type="text" required value={businessName} onChange={(e) => setBusinessName(e.target.value)} className={inputClass} placeholder="Ex: Estúdio Bella Unhas" />
               </div>
             )}
 
@@ -1144,12 +1156,6 @@ function AppInner() {
                 ? "Voltar para o login"
                 : "Já tem conta? Entre aqui"}
             </button>
-          </div>
-
-          <div className="mt-8 text-center border-t border-border pt-4">
-            <p className="text-xs text-muted-foreground mb-1">Acesso administrador da plataforma:</p>
-            <p className="text-xs text-muted-foreground">admin@maisonnaile.com</p>
-            <p className="text-xs text-muted-foreground">Naile@Admin2026</p>
           </div>
         </div>
       </div>
