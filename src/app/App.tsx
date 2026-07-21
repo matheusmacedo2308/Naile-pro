@@ -76,11 +76,8 @@ const DEFAULT_SERVICES = [
   ] },
 ];
 
-const DEFAULT_PROFESSIONALS = [
-  { id: 1, name: "Ana Luiza", specialty: "Nail Art & Gel", rating: 4.9, reviews: 128, img: "photo-1531746020798-e6953c6e8e04" },
-  { id: 2, name: "Camila Torres", specialty: "Acrílico & Escultura", rating: 4.8, reviews: 94, img: "photo-1494790108377-be9c29b29330" },
-  { id: 3, name: "Fernanda Dias", specialty: "Manicure Clássica", rating: 4.9, reviews: 211, img: "photo-1438761681033-6461ffad8d80" },
-];
+// Same as the backend: no fake team by default — the owner adds their own.
+const DEFAULT_PROFESSIONALS: any[] = [];
 
 // Icons are attached on the client by category name (they can't be stored in the DB).
 const CATEGORY_ICONS: Record<string, any> = {
@@ -712,12 +709,23 @@ function AppInner() {
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, "_blank");
   };
 
+  // Catches malformed addresses the basic HTML5 email input lets through —
+  // e.g. "nome@gmail.com.2222" looks email-shaped but that final ".2222"
+  // isn't a real domain ending, so we require the last label to be letters.
+  const isValidEmail = (value: string) => {
+    const trimmed = value.trim();
+    return /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(trimmed);
+  };
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true);
     setAuthError(null);
     setAuthNotice(null);
     try {
+      if (!isValidEmail(email)) {
+        throw new Error("Digite um email válido (ex: nome@provedor.com).");
+      }
       if (authMode === "forgot") {
         // Production-grade recovery: Supabase emails a secure link that brings
         // the user back to the app to set a new password.

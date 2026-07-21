@@ -57,11 +57,9 @@ const DEFAULT_SERVICES = [
   ] },
 ];
 
-const DEFAULT_PROFESSIONALS = [
-  { id: 1, name: 'Ana Luiza', specialty: 'Nail Art & Gel', rating: 4.9, reviews: 128, img: 'photo-1531746020798-e6953c6e8e04' },
-  { id: 2, name: 'Camila Torres', specialty: 'Acrílico & Escultura', rating: 4.8, reviews: 94, img: 'photo-1494790108377-be9c29b29330' },
-  { id: 3, name: 'Fernanda Dias', specialty: 'Manicure Clássica', rating: 4.9, reviews: 211, img: 'photo-1438761681033-6461ffad8d80' },
-];
+// New businesses start with no team at all — the owner adds their real
+// professional from the Painel, instead of inheriting fake example names.
+const DEFAULT_PROFESSIONALS: any[] = [];
 
 // Default weekly hours — Mon–Sat 9h–18h with a lunch break, closed Sunday.
 // Keyed by JS's Date.getDay() (0 = Sunday .. 6 = Saturday).
