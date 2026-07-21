@@ -1932,42 +1932,10 @@ function AppInner() {
                     );
                   })}
                 </div>
-
-                {/* Past */}
-                <p className="text-xs tracking-widest uppercase text-muted-foreground mb-3">Histórico</p>
-                <div className="space-y-3">
-                  {[
-                    { service: { name: "Pedicure Spa", price: "R$ 95" }, professional: { name: "Fernanda Dias" }, date: { day: 2, month: 5, year: 2026 }, time: "11:00" },
-                    { service: { name: "Hidratação Profunda", price: "R$ 55" }, professional: { name: "Ana Luiza" }, date: { day: 15, month: 4, year: 2026 }, time: "15:00" },
-                    { service: { name: "Manicure Simples", price: "R$ 45" }, professional: { name: "Fernanda Dias" }, date: { day: 30, month: 3, year: 2026 }, time: "09:30" },
-                  ].map((appt, i) => (
-                <div key={i} className="bg-card border border-border rounded-sm p-4 opacity-70">
-                  <div className="flex justify-between items-start mb-3">
-                    <p className="font-medium text-foreground">{appt.service.name}</p>
-                    <span
-                      className="text-xs px-2 py-0.5 rounded-full"
-                      style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}
-                    >
-                      concluído
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <span>{appt.professional.name}</span>
-                    <span style={{ fontFamily: "'DM Mono', monospace" }}>{`${String(appt.date.day).padStart(2, "0")}/${String(appt.date.month + 1).padStart(2, "0")}/${appt.date.year}`} · {appt.time}</span>
-                  </div>
-                  <div className="flex justify-between items-center mt-3 pt-3 border-t border-border">
-                    <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>{appt.service.price}</span>
-                    <button className="flex items-center gap-1 text-xs" style={{ color: "var(--accent)" }}>
-                      <Star size={10} /> avaliar
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+              </div>
+            )}
           </div>
         )}
-      </div>
-    )}
 
         {/* ADMIN PANEL (business owner / platform admin) */}
         {activeTab === "admin" && isOwner && (
