@@ -2,7 +2,7 @@ import { useState, useEffect, Component } from "react";
 import { motion, useReducedMotion, AnimatePresence } from "motion/react";
 import { createClient } from "@supabase/supabase-js";
 import { projectId, publicAnonKey } from "../../utils/supabase/info";
-import { ChevronLeft, ChevronRight, Clock, Star, Instagram, Phone, MapPin, X, Check, Sparkles, Scissors, Palette, Gem, LayoutDashboard } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, Star, Instagram, Phone, MapPin, X, Check, Sparkles, Scissors, Palette, Gem, LayoutDashboard, CreditCard as CreditCardIcon } from "lucide-react";
 import { AdminPanel } from "./components/AdminPanel";
 
 const SERVER_URL = `https://${projectId}.supabase.co/functions/v1/make-server-a3611da8`;
@@ -76,8 +76,11 @@ const DEFAULT_SERVICES = [
   ] },
 ];
 
-// Same as the backend: no fake team by default — the owner adds their own.
-const DEFAULT_PROFESSIONALS: any[] = [];
+const DEFAULT_PROFESSIONALS = [
+  { id: 1, name: "Ana Luiza", specialty: "Nail Art & Gel", rating: 4.9, reviews: 128, img: "photo-1531746020798-e6953c6e8e04" },
+  { id: 2, name: "Camila Torres", specialty: "Acrílico & Escultura", rating: 4.8, reviews: 94, img: "photo-1494790108377-be9c29b29330" },
+  { id: 3, name: "Fernanda Dias", specialty: "Manicure Clássica", rating: 4.9, reviews: 211, img: "photo-1438761681033-6461ffad8d80" },
+];
 
 // Icons are attached on the client by category name (they can't be stored in the DB).
 const CATEGORY_ICONS: Record<string, any> = {
@@ -192,7 +195,6 @@ function AppInner() {
 
   // Cancel / reschedule state
   const [cancelingKey, setCancelingKey] = useState<string | null>(null);
-  const [resumingKey, setResumingKey] = useState<string | null>(null);
   const [reschedulingAppt, setReschedulingAppt] = useState<any>(null);
   const [reschedDate, setReschedDate] = useState<{ day: number; month: number; year: number } | null>(null);
   const [reschedTime, setReschedTime] = useState<string | null>(null);
@@ -343,28 +345,23 @@ function AppInner() {
 
   useEffect(() => {
     if (!paymentReturnPending) return;
-    const waitingKey = sessionStorage.getItem("pendingApptKey");
     let attempts = 0;
     const interval = setInterval(async () => {
       attempts += 1;
       const res = await authedFetch(`${API_URL}?businessId=${WORKSPACE_ID}`);
       const data = await res.json().catch(() => ({}));
       const appts = data.appointments || [];
-
-      // Only celebrate once THIS specific appointment is actually marked
-      // "confirmado" — not just whenever nothing is "aguardando_pagamento"
-      // anymore, since that can also be true for unrelated reasons (e.g. a
-      // different pending booking, or this one still processing).
-      const thisAppt = waitingKey
-        ? appts.find((a: any) => apptKey(a) === waitingKey)
-        : [...appts].filter((a: any) => a.paid && a.paidAt).sort((a: any, b: any) => new Date(b.paidAt).getTime() - new Date(a.paidAt).getTime())[0];
-
-      if (thisAppt && thisAppt.status === "confirmado" && thisAppt.paid) {
+      const stillPending = appts.some((a: any) => a.status === "aguardando_pagamento");
+      if (!stillPending) {
         await fetchAppointments();
-        setConfirmedAppt(thisAppt);
+        // The most recently paid appointment — that's the one we just
+        // finished paying for.
+        const justPaid = [...appts]
+          .filter((a: any) => a.paid && a.paidAt)
+          .sort((a: any, b: any) => new Date(b.paidAt).getTime() - new Date(a.paidAt).getTime())[0];
+        setConfirmedAppt(justPaid || null);
         setPaymentReturnPending(false);
         setPaymentJustConfirmed(true);
-        sessionStorage.removeItem("pendingApptKey");
         clearInterval(interval);
       } else if (attempts >= 15) {
         // Stop polling after ~1 minute; the manual "Atualizar" button in the
@@ -665,39 +662,6 @@ function AppInner() {
     }
   };
 
-  // Client left the payment page without finishing — this asks the backend
-  // for a fresh checkout link on the SAME pending appointment, so we send
-  // them back to pay instead of making them book again.
-  const resumeCheckout = async (appt: any) => {
-    const res = await fetch(`${SERVER_URL}/appointments/resume-checkout`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key: apptKey(appt), returnUrl: window.location.href }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Não foi possível reabrir o pagamento.");
-    if (data.checkoutUrl) {
-      // Remember exactly which appointment we're paying for, so when the
-      // client comes back we only celebrate once THIS one is confirmed —
-      // not just whenever something in the list stops being pending.
-      sessionStorage.setItem("pendingApptKey", apptKey(appt));
-      window.location.href = data.checkoutUrl;
-    }
-  };
-
-  // Marks an appointment as done (client already had her nails done). Keeps
-  // the record — it just flips status so it drops into the history list
-  // instead of the upcoming agenda.
-  const completeAppointment = async (appt: any) => {
-    const res = await authedFetch(`${SERVER_URL}/appointments/complete`, {
-      method: "POST",
-      body: JSON.stringify({ key: apptKey(appt) }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Erro ao finalizar.");
-    await fetchAppointments();
-  };
-
   // Opens WhatsApp with a day-before reminder pre-filled, so the owner just
   // has to glance at the "amanhã" list once a day and tap send for each.
   const sendReminder = (appt: any) => {
@@ -709,23 +673,12 @@ function AppInner() {
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, "_blank");
   };
 
-  // Catches malformed addresses the basic HTML5 email input lets through —
-  // e.g. "nome@gmail.com.2222" looks email-shaped but that final ".2222"
-  // isn't a real domain ending, so we require the last label to be letters.
-  const isValidEmail = (value: string) => {
-    const trimmed = value.trim();
-    return /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(trimmed);
-  };
-
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true);
     setAuthError(null);
     setAuthNotice(null);
     try {
-      if (!isValidEmail(email)) {
-        throw new Error("Digite um email válido (ex: nome@provedor.com).");
-      }
       if (authMode === "forgot") {
         // Production-grade recovery: Supabase emails a secure link that brings
         // the user back to the app to set a new password.
@@ -794,7 +747,6 @@ function AppInner() {
         // A deposit is required — send the client to pay. The appointment
         // only becomes "confirmado" (and appears on the salon's agenda)
         // once the payment webhook confirms it.
-        if (data.appointment?.key) sessionStorage.setItem("pendingApptKey", data.appointment.key);
         window.location.href = data.checkoutUrl;
         return;
       }
@@ -833,21 +785,44 @@ function AppInner() {
     }
   };
 
-  const handleResumeCheckout = async (appt: any) => {
+  const [resumingPaymentKey, setResumingPaymentKey] = useState<string | null>(null);
+  const resumePayment = async (appt: any) => {
     const key = apptKey(appt);
-    setResumingKey(key);
+    setResumingPaymentKey(key);
     setApptActionError(null);
     try {
-      await resumeCheckout(appt);
+      const res = await authedFetch(`${SERVER_URL}/appointments/resume-payment`, {
+        method: "POST",
+        body: JSON.stringify({ key, returnUrl: window.location.href }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao abrir o pagamento.");
+      if (data.checkoutUrl) window.location.href = data.checkoutUrl;
     } catch (err: any) {
-      setApptActionError(err.message || "Erro ao reabrir o pagamento.");
-      setResumingKey(null);
+      setApptActionError(err.message || "Erro ao abrir o pagamento.");
+      setResumingPaymentKey(null);
     }
-    // No `finally` clearing resumingKey on success: the page is about to
-    // navigate away to the checkout, so leaving the button in its "loading"
-    // state avoids a flash back to normal right before the redirect fires.
   };
 
+  const [completingKey, setCompletingKey] = useState<string | null>(null);
+  const completeAppointment = async (appt: any) => {
+    const key = apptKey(appt);
+    setCompletingKey(key);
+    setApptActionError(null);
+    try {
+      const res = await authedFetch(`${SERVER_URL}/appointments/complete`, {
+        method: "POST",
+        body: JSON.stringify({ key }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao concluir.");
+      await fetchAppointments();
+    } catch (err: any) {
+      setApptActionError(err.message || "Erro ao concluir agendamento.");
+    } finally {
+      setCompletingKey(null);
+    }
+  };
 
   const openReschedule = (appt: any) => {
     setReschedulingAppt(appt);
@@ -1056,7 +1031,7 @@ function AppInner() {
             {authMode === "register" && accountType === "business" && (
               <div>
                 <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1">Nome do Estúdio</label>
-                <input type="text" required value={businessName} onChange={(e) => setBusinessName(e.target.value)} className={inputClass} placeholder="Ex: Estúdio Bella Unhas" />
+                <input type="text" required value={businessName} onChange={(e) => setBusinessName(e.target.value)} className={inputClass} placeholder="Ex: Studio Bella Unhas" />
               </div>
             )}
 
@@ -1164,6 +1139,12 @@ function AppInner() {
                 ? "Voltar para o login"
                 : "Já tem conta? Entre aqui"}
             </button>
+          </div>
+
+          <div className="mt-8 text-center border-t border-border pt-4">
+            <p className="text-xs text-muted-foreground mb-1">Acesso administrador da plataforma:</p>
+            <p className="text-xs text-muted-foreground">admin@maisonnaile.com</p>
+            <p className="text-xs text-muted-foreground">Naile@Admin2026</p>
           </div>
         </div>
       </div>
@@ -1287,8 +1268,6 @@ function AppInner() {
                 </p>
               </div>
             </motion.div>
-
-            <div className="naile-gold-rule mb-8" style={{ width: 64, margin: "0 auto 2rem" }} />
 
             {/* Quick Book */}
             <div className="px-4 mb-8">
@@ -1911,12 +1890,12 @@ function AppInner() {
                         <div className="flex items-center gap-4">
                           {appt.status === "aguardando_pagamento" && !isOwner && (
                             <button
-                              onClick={() => handleResumeCheckout(appt)}
-                              disabled={resumingKey === key}
-                              className="flex items-center gap-1 text-xs disabled:opacity-50 transition-colors"
+                              onClick={() => resumePayment(appt)}
+                              disabled={resumingPaymentKey === key}
+                              className="flex items-center gap-1 text-xs disabled:opacity-50"
                               style={{ color: "var(--primary)" }}
                             >
-                              {resumingKey === key ? "abrindo..." : "continuar pagamento"}
+                              <CreditCardIcon size={12} /> {resumingPaymentKey === key ? "abrindo..." : "ir para pagamento"}
                             </button>
                           )}
                           <button
@@ -1940,10 +1919,10 @@ function AppInner() {
                     );
                   })}
                 </div>
-              </div>
-            )}
           </div>
         )}
+      </div>
+    )}
 
         {/* ADMIN PANEL (business owner / platform admin) */}
         {activeTab === "admin" && isOwner && (
@@ -1970,6 +1949,7 @@ function AppInner() {
             uploadPhoto={uploadPhoto}
             cancelWithMessage={cancelWithMessage}
             onComplete={completeAppointment}
+            completingKey={completingKey}
             sendReminder={sendReminder}
             onReschedule={openReschedule}
             apptKey={apptKey}

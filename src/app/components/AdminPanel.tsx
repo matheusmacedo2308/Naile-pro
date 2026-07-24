@@ -57,8 +57,9 @@ interface AdminPanelProps {
   saveBusinessData: (payload: { services?: any[]; professionals?: any[] }) => Promise<void>;
   uploadPhoto: (dataUrl: string) => Promise<string>;
   cancelWithMessage: (appt: any, message: string) => Promise<void>;
-  onComplete: (appt: any) => Promise<void>;
   sendReminder?: (appt: any) => void;
+  onComplete?: (appt: any) => void;
+  completingKey?: string | null;
   onReschedule: (appt: any) => void;
   apptKey: (appt: any) => string;
 }
@@ -87,8 +88,9 @@ export function AdminPanel({
   saveBusinessData,
   uploadPhoto,
   cancelWithMessage,
-  onComplete,
   sendReminder,
+  onComplete,
+  completingKey,
   onReschedule,
   apptKey,
 }: AdminPanelProps) {
@@ -187,21 +189,17 @@ export function AdminPanel({
   } else if (subscription?.status === "pending_payment") {
     trialBanner = { text: "Este CPF/CNPJ já usou o teste gratuito antes. Assine o plano mensal para começar a usar o painel.", urgent: true, showSubscribeButton: true };
   } else if (subscription?.status === "pending") {
-    trialBanner = { text: "Assinatura em processamento — assim que o Mercado Pago confirmar, o acesso libera automaticamente.", urgent: false, showSubscribeButton: false };
+    trialBanner = { text: "Você começou a assinar mas não finalizou o pagamento. Clique para voltar para o checkout.", urgent: false, showSubscribeButton: true };
   } else if (subscription?.status === "canceled" || subscription?.status === "past_due" || subscription?.status === "paused") {
     trialBanner = { text: "Sua assinatura não está ativa. Assine de novo para continuar usando o painel.", urgent: true, showSubscribeButton: true };
   }
 
   const [subscribing, setSubscribing] = useState(false);
-  const [subscribeErr, setSubscribeErr] = useState<string | null>(null);
   const handleSubscribe = async () => {
     if (!onSubscribe) return;
     setSubscribing(true);
-    setSubscribeErr(null);
     try {
       await onSubscribe();
-    } catch (e: any) {
-      setSubscribeErr(e.message || "Erro ao abrir o checkout. Tente novamente.");
     } finally {
       setSubscribing(false);
     }
@@ -219,16 +217,13 @@ export function AdminPanel({
         </h2>
         <div className="p-4 rounded-sm border text-sm" style={{ background: "#fef2f2", borderColor: "#fecaca", color: "#dc2626" }}>
           <p className="mb-3 font-medium">{trialBanner?.text || "Sua assinatura precisa ser confirmada para usar o painel."}</p>
-          {subscribeErr && (
-            <p className="mb-3 text-xs font-medium" style={{ color: "#dc2626" }}>{subscribeErr}</p>
-          )}
           {onSubscribe && trialBanner?.showSubscribeButton !== false && (
             <button
               onClick={handleSubscribe}
               disabled={subscribing}
               className="w-full py-3 rounded-sm bg-primary text-primary-foreground text-sm disabled:opacity-50"
             >
-              {subscribing ? "Abrindo checkout..." : "Assinar agora — R$ 79,90/mês"}
+              {subscribing ? "Abrindo checkout..." : subscription?.status === "pending" ? "Voltar para o pagamento" : "Assinar agora — R$ 79,90/mês"}
             </button>
           )}
         </div>
@@ -255,16 +250,13 @@ export function AdminPanel({
             }
           >
             <p className="mb-2">{trialBanner.text}</p>
-            {subscribeErr && (
-              <p className="mb-2 text-xs font-medium" style={{ color: "#dc2626" }}>{subscribeErr}</p>
-            )}
             {trialBanner.showSubscribeButton && onSubscribe && (
               <button
                 onClick={handleSubscribe}
                 disabled={subscribing}
                 className="text-xs px-3 py-1.5 rounded-sm bg-primary text-primary-foreground disabled:opacity-50"
               >
-                {subscribing ? "Abrindo checkout..." : "Assinar agora — R$ 79,90/mês"}
+                {subscribing ? "Abrindo checkout..." : subscription?.status === "pending" ? "Voltar para o pagamento" : "Assinar agora — R$ 79,90/mês"}
               </button>
             )}
           </div>
@@ -427,9 +419,10 @@ export function AdminPanel({
           appointments={appointments}
           loading={loadingAppts}
           cancelWithMessage={cancelWithMessage}
-          onComplete={onComplete}
           sendReminder={sendReminder}
           onReschedule={onReschedule}
+          onComplete={onComplete}
+          completingKey={completingKey}
           apptKey={apptKey}
         />
       )}
@@ -451,15 +444,13 @@ export function AdminPanel({
 
 /* ---------------- Appointments ---------------- */
 
-function AppointmentsManager({ appointments, loading, cancelWithMessage, onComplete, sendReminder, onReschedule, apptKey }: any) {
+function AppointmentsManager({ appointments, loading, cancelWithMessage, sendReminder, onReschedule, onComplete, completingKey, apptKey }: any) {
   const [cancelTarget, setCancelTarget] = useState<any>(null);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [remindedKeys, setRemindedKeys] = useState<Record<string, boolean>>({});
   const [view, setView] = useState<"proximos" | "historico">("proximos");
-  const [completingKey, setCompletingKey] = useState<string | null>(null);
-  const [completeErr, setCompleteErr] = useState<string | null>(null);
 
   const confirmCancel = async () => {
     setBusy(true);
@@ -475,32 +466,11 @@ function AppointmentsManager({ appointments, loading, cancelWithMessage, onCompl
     }
   };
 
-  const handleComplete = async (appt: any) => {
-    const key = apptKey(appt);
-    setCompletingKey(key);
-    setCompleteErr(null);
-    try {
-      await onComplete(appt);
-    } catch (e: any) {
-      setCompleteErr(e.message || "Erro ao finalizar atendimento.");
-    } finally {
-      setCompletingKey(null);
-    }
-  };
-
-  // Split the agenda: anything already marked "concluido" goes to Histórico,
-  // everything else (confirmado, etc.) is upcoming/active.
-  const upcomingAppts = appointments.filter((appt: any) => appt.status !== "concluido");
-  const historyAppts = appointments
-    .filter((appt: any) => appt.status === "concluido")
-    .sort((a: any, b: any) => new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime());
-  const visibleAppts = view === "proximos" ? upcomingAppts : historyAppts;
-
   // Appointments happening tomorrow, so the owner can send a quick reminder
   // with one tap — no automatic background sending, but no cost either.
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowAppts = upcomingAppts.filter((appt: any) => {
+  const tomorrowAppts = appointments.filter((appt: any) => {
     const d = appt.date;
     return d && d.day === tomorrow.getDate() && d.month === tomorrow.getMonth() && d.year === tomorrow.getFullYear();
   });
@@ -510,37 +480,14 @@ function AppointmentsManager({ appointments, loading, cancelWithMessage, onCompl
     setRemindedKeys((prev) => ({ ...prev, [apptKey(appt)]: true }));
   };
 
+  const upcomingAppts = appointments.filter((a: any) => a.status !== "concluido");
+  const historyAppts = appointments
+    .filter((a: any) => a.status === "concluido")
+    .sort((a: any, b: any) => new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime());
+  const visibleAppts = view === "proximos" ? upcomingAppts : historyAppts;
+
   return (
     <div className="px-4">
-      <div className="flex gap-2 mb-5">
-        <button
-          onClick={() => setView("proximos")}
-          className="flex-1 py-2 rounded-sm text-xs uppercase tracking-widest transition-colors"
-          style={{
-            background: view === "proximos" ? "var(--primary)" : "var(--secondary)",
-            color: view === "proximos" ? "var(--primary-foreground)" : "var(--muted-foreground)",
-          }}
-        >
-          Próximos
-        </button>
-        <button
-          onClick={() => setView("historico")}
-          className="flex-1 py-2 rounded-sm text-xs uppercase tracking-widest transition-colors"
-          style={{
-            background: view === "historico" ? "var(--primary)" : "var(--secondary)",
-            color: view === "historico" ? "var(--primary-foreground)" : "var(--muted-foreground)",
-          }}
-        >
-          Histórico
-        </button>
-      </div>
-
-      {completeErr && (
-        <div className="mb-4 p-3 rounded-sm bg-red-50 border border-red-200 text-red-600 text-sm">
-          {completeErr}
-        </div>
-      )}
-
       {view === "proximos" && tomorrowAppts.length > 0 && (
         <div className="mb-5 p-3 rounded-sm border border-border" style={{ background: "var(--secondary)" }}>
           <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Amanhã — lembrar clientes</p>
@@ -569,19 +516,37 @@ function AppointmentsManager({ appointments, loading, cancelWithMessage, onCompl
         </div>
       )}
 
+      <div className="flex gap-1 p-1 mb-4 rounded-sm" style={{ background: "var(--secondary)" }}>
+        {([
+          { key: "proximos", label: "Próximos" },
+          { key: "historico", label: "Histórico" },
+        ] as const).map((v) => (
+          <button
+            key={v.key}
+            onClick={() => setView(v.key)}
+            className="flex-1 py-2 rounded-sm text-sm transition-colors"
+            style={{
+              background: view === v.key ? "var(--primary)" : "transparent",
+              color: view === v.key ? "var(--primary-foreground)" : "var(--foreground)",
+            }}
+          >
+            {v.label}
+          </button>
+        ))}
+      </div>
+
       {loading ? (
         <div className="py-10 text-center text-muted-foreground text-sm">Carregando agenda...</div>
       ) : visibleAppts.length === 0 ? (
         <div className="py-10 text-center text-muted-foreground text-sm">
-          {view === "proximos" ? "Nenhum agendamento por enquanto." : "Nenhum atendimento finalizado ainda."}
+          {view === "proximos" ? "Nenhum agendamento por enquanto." : "Nenhum atendimento concluído ainda."}
         </div>
       ) : (
         <div className="space-y-3">
           {visibleAppts.map((appt: any) => {
             const key = apptKey(appt);
-            const isCompleting = completingKey === key;
             return (
-              <div key={key} className="bg-card border border-border rounded-sm p-4" style={{ opacity: view === "historico" ? 0.85 : 1 }}>
+              <div key={key} className="bg-card border border-border rounded-sm p-4" style={view === "historico" ? { opacity: 0.85 } : undefined}>
                 <div className="flex justify-between items-start mb-2">
                   <p className="font-medium text-foreground">{appt.service?.name}</p>
                   <span className="text-sm font-medium" style={{ color: "var(--primary)" }}>{appt.service?.price}</span>
@@ -591,27 +556,24 @@ function AppointmentsManager({ appointments, loading, cancelWithMessage, onCompl
                   <span style={{ fontFamily: "'DM Mono', monospace" }}>
                     {`${String(appt.date?.day).padStart(2, "0")}/${String(appt.date?.month + 1).padStart(2, "0")}/${appt.date?.year}`} · {appt.time}
                   </span>
+                  {view === "historico" && (
+                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "var(--secondary)", color: "var(--primary)" }}>
+                      concluído
+                    </span>
+                  )}
                 </div>
                 {appt.userEmail && (
                   <p className="text-xs text-muted-foreground mt-1">Cliente: {appt.userEmail}</p>
                 )}
-                {view === "historico" ? (
-                  <div className="flex items-center gap-1 mt-3 pt-3 border-t border-border text-xs" style={{ color: "var(--primary)" }}>
-                    <Check size={12} />
-                    <span>
-                      Concluído
-                      {appt.completedAt ? ` em ${new Date(appt.completedAt).toLocaleDateString("pt-BR")}` : ""}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border flex-wrap">
+                {view === "proximos" && (
+                  <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border">
                     <button
-                      onClick={() => handleComplete(appt)}
-                      disabled={isCompleting}
-                      className="flex items-center gap-1 text-xs disabled:opacity-50 transition-colors"
+                      onClick={() => onComplete?.(appt)}
+                      disabled={completingKey === key}
+                      className="flex items-center gap-1 text-xs disabled:opacity-50"
                       style={{ color: "var(--primary)" }}
                     >
-                      <Check size={12} /> {isCompleting ? "finalizando..." : "finalizar"}
+                      <Check size={12} /> {completingKey === key ? "concluindo..." : "finalizar"}
                     </button>
                     <button
                       onClick={() => onReschedule(appt)}
