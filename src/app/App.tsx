@@ -47,7 +47,8 @@ class ErrorBoundary extends Component<{ children: any }, { hasError: boolean; me
 
 // Single shared Supabase client. It persists the session, auto-refreshes the
 // access token, and handles refresh-token rotation and recovery links for us.
-const supabase = createClient(`https://${projectId}.supabase.co`, publicAnonKey, {
+// Use a global variable to prevent multiple GoTrueClient instances during HMR
+const supabase = (globalThis as any).__supabaseClient ??= createClient(`https://${projectId}.supabase.co`, publicAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
@@ -965,36 +966,92 @@ function AppInner() {
 
   if (!user) {
     return (
-      <div className="size-full flex flex-col items-center justify-center p-6 overflow-y-auto" style={{ fontFamily: "'DM Sans', sans-serif", background: "var(--background)" }}>
-        <div className="w-full max-w-sm py-8">
-          <div className="text-center mb-8">
-            <p className="text-xs tracking-[0.3em] uppercase text-accent mb-2">Plataforma de Agendamento</p>
-            <h1 className="text-4xl mb-2" style={{ fontFamily: "'Cormorant', serif", fontWeight: 300 }}>
-              {viewingBusiness?.businessName || "Minha Agenda Nail"}
-            </h1>
-            <p className="text-sm text-muted-foreground">
+      <motion.div 
+        className="size-full flex flex-col items-center justify-center p-6 overflow-y-auto relative" 
+        style={{ fontFamily: "'DM Sans', sans-serif", background: "var(--background)" }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
+      >
+        {/* Abstract 3D/Editorial background shapes */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
+          <motion.div 
+            className="absolute -top-20 -right-20 w-96 h-96 rounded-full blur-3xl"
+            style={{ background: "var(--primary)" }}
+            animate={{ 
+              x: [0, 20, 0], 
+              y: [0, 30, 0],
+              scale: [1, 1.1, 1] 
+            }}
+            transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+          />
+          <motion.div 
+            className="absolute -bottom-20 -left-20 w-80 h-80 rounded-full blur-3xl"
+            style={{ background: "var(--accent)" }}
+            animate={{ 
+              x: [0, -20, 0], 
+              y: [0, -30, 0],
+              scale: [1, 1.2, 1] 
+            }}
+            transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
+          />
+        </div>
+
+        <motion.div 
+          className="w-full max-w-sm py-8 relative z-10"
+          style={{ transformPerspective: 1200 }}
+          initial={{ opacity: 0, rotateX: 15, y: 30 }}
+          animate={{ opacity: 1, rotateX: 0, y: 0 }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <div className="text-center mb-10">
+            <motion.p 
+              className="text-[10px] tracking-[0.4em] uppercase text-accent mb-3"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.6 }}
+            >
+              Plataforma de Agendamento
+            </motion.p>
+            <motion.h1 
+              className="text-5xl mb-3 text-foreground" 
+              style={{ fontFamily: "'Cormorant', serif", fontStyle: "italic", fontWeight: 300, lineHeight: 1.1 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.6 }}
+            >
+              {viewingBusiness?.businessName || "Nailê Pro"}
+            </motion.h1>
+            <motion.p 
+              className="text-sm text-muted-foreground"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.6 }}
+            >
               {authMode === "login"
-                ? "Acesse sua conta"
+                ? "Acesse seu refúgio de beleza"
                 : authMode === "forgot"
-                ? "Redefina sua senha"
+                ? "Recupere seu acesso"
                 : accountType === "business"
-                ? "Cadastre seu estúdio e comece grátis"
-                : "Crie sua conta de cliente"}
-            </p>
+                ? "Eleve seu estúdio a outro nível"
+                : "Seu perfil exclusivo"}
+            </motion.p>
           </div>
 
           {viewingBusinessError && (
-            <div className="mb-5 p-3 border text-sm rounded-sm" style={{ background: "var(--secondary)", borderColor: "var(--border)", color: "var(--foreground)" }}>
+            <div className="mb-6 p-4 border border-border/50 text-sm bg-secondary/80 backdrop-blur-md rounded-none text-foreground text-center">
               {viewingBusinessError}
             </div>
           )}
 
-          {/* Account type toggle — only shown when NOT arriving via a
-              specific salon's link. Someone who clicked a salon's shared
-              link is clearly that salon's customer, not someone trying to
-              register their own business. */}
+          {/* Account type toggle */}
           {authMode === "register" && !viewingBusiness && (
-            <div className="flex gap-1 p-1 mb-5 rounded-sm" style={{ background: "var(--secondary)" }}>
+            <motion.div 
+              className="flex gap-2 p-1 mb-8 bg-transparent border-b border-border pb-4"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
               {([
                 { key: "client", label: "Sou Cliente" },
                 { key: "business", label: "Sou Empresa" },
@@ -1003,151 +1060,193 @@ function AppInner() {
                   key={opt.key}
                   type="button"
                   onClick={() => setAccountType(opt.key)}
-                  className="flex-1 py-2 rounded-sm text-sm transition-colors"
+                  className="flex-1 py-3 text-[11px] tracking-widest uppercase transition-all duration-300 relative"
                   style={{
-                    background: accountType === opt.key ? "var(--primary)" : "transparent",
-                    color: accountType === opt.key ? "var(--primary-foreground)" : "var(--foreground)",
-                    fontWeight: accountType === opt.key ? 500 : 400,
+                    color: accountType === opt.key ? "var(--foreground)" : "var(--muted-foreground)",
                   }}
                 >
                   {opt.label}
+                  {accountType === opt.key && (
+                    <motion.div 
+                      layoutId="activeTabIndicator"
+                      className="absolute bottom-[-17px] left-0 right-0 h-[1px] bg-foreground"
+                    />
+                  )}
                 </button>
               ))}
-            </div>
+            </motion.div>
           )}
 
-          <form onSubmit={handleAuth} className="space-y-4">
-            {authError && (
-              <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-sm">
-                {authError}
-              </div>
-            )}
-            {authNotice && (
-              <div className="p-3 border text-sm rounded-sm" style={{ background: "var(--secondary)", borderColor: "var(--border)", color: "var(--foreground)" }}>
-                {authNotice}
-              </div>
-            )}
+          <form onSubmit={handleAuth} className="space-y-5">
+            <AnimatePresence mode="popLayout">
+              {authError && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="p-4 bg-red-50/50 backdrop-blur-sm border border-red-200 text-red-600 text-[13px] text-center"
+                >
+                  {authError}
+                </motion.div>
+              )}
+              {authNotice && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="p-4 border border-border/50 text-[13px] bg-secondary/80 backdrop-blur-sm text-foreground text-center"
+                >
+                  {authNotice}
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-            {authMode === "register" && accountType === "business" && (
-              <div>
-                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1">Nome do Estúdio</label>
-                <input type="text" required value={businessName} onChange={(e) => setBusinessName(e.target.value)} className={inputClass} placeholder="Ex: Studio Bella Unhas" />
-              </div>
-            )}
+            <AnimatePresence mode="popLayout">
+              {authMode === "register" && accountType === "business" && (
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 10 }}
+                  className="space-y-1"
+                >
+                  <label className="block text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Nome do Estúdio</label>
+                  <input type="text" required value={businessName} onChange={(e) => setBusinessName(e.target.value)} className={inputClass} placeholder="Ex: Studio Bella Unhas" />
+                </motion.div>
+              )}
 
-            {authMode === "register" && accountType === "business" && (
-              <div>
-                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1">CPF ou CNPJ</label>
-                <input type="text" required value={cpfCnpj} onChange={(e) => setCpfCnpj(e.target.value)} className={inputClass} placeholder="000.000.000-00" />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Usado só pra liberar seu teste grátis uma única vez por documento.
-                </p>
-              </div>
-            )}
+              {authMode === "register" && accountType === "business" && (
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 10 }}
+                  className="space-y-1 mt-5"
+                >
+                  <label className="block text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">CPF ou CNPJ</label>
+                  <input type="text" required value={cpfCnpj} onChange={(e) => setCpfCnpj(e.target.value)} className={inputClass} placeholder="000.000.000-00" />
+                </motion.div>
+              )}
 
-            {authMode === "register" && (
-              <div>
-                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1">
-                  {accountType === "business" ? "Seu Nome (responsável)" : "Nome completo"}
-                </label>
-                <input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} className={inputClass} placeholder="Seu nome" />
-              </div>
-            )}
+              {authMode === "register" && (
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 10 }}
+                  className="space-y-1 mt-5"
+                >
+                  <label className="block text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">
+                    {accountType === "business" ? "Seu Nome (responsável)" : "Nome completo"}
+                  </label>
+                  <input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} className={inputClass} placeholder="Seu nome" />
+                </motion.div>
+              )}
 
-            {authMode === "register" && (
-              <div>
-                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1">
-                  WhatsApp
-                </label>
-                <input
-                  type="tel"
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className={inputClass}
-                  placeholder="(11) 91234-5678"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Usamos esse número para avisos sobre seus agendamentos.
-                </p>
-              </div>
-            )}
+              {authMode === "register" && (
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 10 }}
+                  className="space-y-1 mt-5"
+                >
+                  <label className="block text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">
+                    WhatsApp
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className={inputClass}
+                    placeholder="(11) 91234-5678"
+                  />
+                </motion.div>
+              )}
 
-            <div>
-              <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1">Email</label>
-              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} placeholder="seu@email.com" />
-            </div>
+              <motion.div layout className="space-y-1 mt-5">
+                <label className="block text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Email</label>
+                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} placeholder="seu@email.com" />
+              </motion.div>
 
-            {authMode !== "forgot" && (
-              <div>
-                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1">Senha</label>
-                <input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} className={inputClass} placeholder="••••••••" />
-              </div>
-            )}
+              {authMode !== "forgot" && (
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 10 }}
+                  className="space-y-1 mt-5"
+                >
+                  <label className="block text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Senha</label>
+                  <input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} className={inputClass} placeholder="••••••••" />
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {authMode === "forgot" && (
-              <p className="text-xs text-muted-foreground leading-relaxed">
+              <motion.p 
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                className="text-xs text-muted-foreground leading-relaxed text-center py-2"
+              >
                 Enviaremos um link seguro para o seu email. Ao clicar nele, você poderá definir uma nova senha.
-              </p>
+              </motion.p>
             )}
 
             {authMode === "login" && (
-              <div className="text-right -mt-2">
+              <motion.div layout className="text-right -mt-2">
                 <button
                   type="button"
                   onClick={() => { setAuthMode("forgot"); setAuthError(null); setAuthNotice(null); setPassword(""); }}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-[11px] tracking-widest text-muted-foreground hover:text-foreground transition-colors uppercase"
                 >
                   Esqueci a senha
                 </button>
-              </div>
+              </motion.div>
             )}
 
-            <button
+            <motion.button
               type="submit"
               disabled={authLoading}
-              className="w-full py-4 mt-4 rounded-sm text-primary-foreground text-sm tracking-widest uppercase transition-opacity hover:opacity-90 disabled:opacity-50"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full py-5 mt-6 rounded-none text-primary-foreground text-[11px] tracking-[0.2em] uppercase transition-all duration-300 hover:shadow-xl disabled:opacity-50 border border-primary"
               style={{ background: "var(--primary)" }}
             >
               {authLoading
                 ? "Aguarde..."
                 : authMode === "login"
-                ? "Entrar"
+                ? "Acessar Plataforma"
                 : authMode === "forgot"
-                ? "Enviar Link de Recuperação"
+                ? "Enviar Link"
                 : accountType === "business"
-                ? "Cadastrar Estúdio"
+                ? "Criar Estúdio"
                 : "Criar Conta"}
-            </button>
+            </motion.button>
           </form>
 
           {authMode === "register" && accountType === "business" && (
-            <p className="text-xs text-muted-foreground text-center mt-4 leading-relaxed">
-              14 dias grátis · Sem cartão de crédito · Cancele quando quiser
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground text-center mt-6 leading-relaxed">
+              14 dias grátis · Sem cartão
             </p>
           )}
 
-          <div className="mt-6 text-center">
+          <div className="mt-8 text-center">
             <button
               type="button"
               onClick={() => { setAuthMode(m => m === "login" ? "register" : "login"); setAuthError(null); setAuthNotice(null); setPassword(""); }}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="text-[11px] tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors pb-1 border-b border-muted-foreground/30 hover:border-foreground"
             >
               {authMode === "login"
-                ? "Não tem conta? Cadastre-se"
+                ? "Primeira vez? Cadastre-se"
                 : authMode === "forgot"
                 ? "Voltar para o login"
                 : "Já tem conta? Entre aqui"}
             </button>
           </div>
 
-          <div className="mt-8 text-center border-t border-border pt-4">
-            <p className="text-xs text-muted-foreground mb-1">Acesso administrador da plataforma:</p>
-            <p className="text-xs text-muted-foreground">admin@maisonnaile.com</p>
-            <p className="text-xs text-muted-foreground">Naile@Admin2026</p>
+          <div className="mt-12 text-center border-t border-border/50 pt-8 opacity-50 hover:opacity-100 transition-opacity duration-500">
+            <p className="text-[9px] tracking-widest uppercase text-muted-foreground mb-2">Acesso Administrador</p>
+            <p className="text-xs text-foreground" style={{ fontFamily: "'DM Mono', monospace" }}>admin@maisonnaile.com</p>
+            <p className="text-xs text-foreground" style={{ fontFamily: "'DM Mono', monospace" }}>Naile@Admin2026</p>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     );
   }
 
@@ -1202,37 +1301,37 @@ function AppInner() {
       )}
 
       {/* Header */}
-      <header className="shrink-0 px-6 pt-8 pb-4 flex items-center justify-between">
+      <header className="shrink-0 px-6 pt-10 pb-6 flex items-center justify-between z-10 bg-background/80 backdrop-blur-md sticky top-0 border-b border-border/30">
         <div>
-          <p className="text-xs tracking-[0.2em] uppercase text-muted-foreground">
+          <p className="text-[9px] tracking-[0.2em] uppercase mb-1" style={{ color: "var(--accent)" }}>
             {isAdmin ? "Administração" : profile?.businessId ? "Meu Estúdio" : (viewingBusiness?.businessName || "Minha Agenda Nail")}
           </p>
           <h1
-            className="text-2xl text-foreground leading-tight"
-            style={{ fontFamily: "'Cormorant', serif", fontWeight: 300, letterSpacing: "0.02em" }}
+            className="text-3xl text-foreground leading-none"
+            style={{ fontFamily: "'Cormorant', serif", fontStyle: "italic", fontWeight: 300, letterSpacing: "0.02em" }}
           >
-            {profile?.name?.split(" ")[0] ? `Olá, ${profile.name.split(" ")[0]}` : "Minha Agenda Nail"}
+            {profile?.name?.split(" ")[0] ? `Olá, ${profile.name.split(" ")[0]}` : "Minha Agenda"}
           </h1>
         </div>
-        <div className="flex items-center gap-1">
-          <button className="p-2 rounded-full hover:bg-secondary transition-colors">
-            <Instagram size={18} className="text-muted-foreground" />
+        <div className="flex items-center gap-3">
+          <button className="p-2 rounded-full border border-border/50 hover:bg-secondary transition-all hover:scale-105">
+            <Instagram size={14} className="text-muted-foreground" />
           </button>
-          <button className="p-2 rounded-full hover:bg-secondary transition-colors">
-            <Phone size={18} className="text-muted-foreground" />
+          <button className="p-2 rounded-full border border-border/50 hover:bg-secondary transition-all hover:scale-105">
+            <Phone size={14} className="text-muted-foreground" />
           </button>
-          <button onClick={handleLogout} className="p-2 ml-1 text-xs text-red-400 hover:text-red-500 transition-colors uppercase tracking-widest">
+          <button onClick={handleLogout} className="p-2 text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-[0.1em] underline decoration-muted-foreground/30 underline-offset-4">
             Sair
           </button>
         </div>
       </header>
 
       {profileLoadFailed && (
-        <div className="shrink-0 mx-6 mb-3 p-3 rounded-sm border text-sm flex items-center justify-between gap-3" style={{ background: "#fef3c7", borderColor: "#fde68a", color: "#92400e" }}>
-          <p>Não conseguimos carregar seus dados agora.</p>
+        <div className="shrink-0 mx-6 mt-4 p-4 text-sm flex items-center justify-between gap-3" style={{ background: "#fef3c7", border: "1px solid #fde68a", color: "#92400e" }}>
+          <p style={{ fontFamily: "'DM Sans', sans-serif" }}>Não conseguimos carregar seus dados agora.</p>
           <button
             onClick={() => { setProfileLoadFailed(false); loadProfile(); }}
-            className="shrink-0 text-xs px-3 py-1.5 rounded-sm bg-primary text-primary-foreground"
+            className="shrink-0 text-[10px] uppercase tracking-widest px-4 py-2 bg-primary text-primary-foreground transition-all hover:opacity-90"
           >
             Tentar de novo
           </button>
@@ -1240,77 +1339,90 @@ function AppInner() {
       )}
 
       {/* Content */}
-      <main className="flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <main 
+        className="flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        style={{ perspective: "1000px" }}
+      >
         {/* HOME */}
         {activeTab === "home" && (
           <div className="pb-28">
             {/* Hero */}
             <motion.div
-              className="mx-4 rounded-lg overflow-hidden relative h-48 mb-8"
+              className="mx-4 overflow-hidden relative mb-12 border-b border-border pb-8"
               style={{ transformPerspective: 1000, transformOrigin: "top center" }}
-              initial={shouldReduceMotion ? false : { opacity: 0, rotateX: -14, y: 18 }}
-              animate={{ opacity: 1, rotateX: 0, y: 0 }}
+              initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
             >
-              <img
-                src="https://images.unsplash.com/photo-1604654894610-df63bc536371?w=800&h=400&fit=crop&auto=format"
-                alt="Nail art elegante"
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 to-transparent" />
-              <div className="absolute bottom-4 left-5 right-5">
-                <p className="text-white/80 text-xs tracking-widest uppercase mb-1">Reserve seu horário</p>
-                <p
-                  className="text-white text-xl leading-snug"
-                  style={{ fontFamily: "'Cormorant', serif", fontWeight: 400 }}
+              <div className="relative w-full h-[400px] mb-6 overflow-hidden" style={{ borderRadius: '0' }}>
+                <img
+                  src="https://images.unsplash.com/photo-1522337660859-02fbefca4702?w=800&h=600&fit=crop&auto=format"
+                  alt="Nail art elegante"
+                  className="w-full h-full object-cover scale-105"
+                  style={{ filter: "brightness(0.85) contrast(1.1) saturate(0.9)" }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[var(--background)] to-transparent opacity-80" />
+              </div>
+              <div className="relative text-center px-4 -mt-24 z-10">
+                <p className="text-[10px] tracking-[0.3em] uppercase mb-4" style={{ color: "var(--accent)" }}>O Refúgio do Cuidado</p>
+                <h2
+                  className="text-5xl leading-[0.9] mb-4 text-foreground"
+                  style={{ fontFamily: "'Cormorant', serif", fontStyle: "italic", fontWeight: 300 }}
                 >
-                  Arte nas suas mãos, <br />cuidado em cada detalhe.
-                </p>
+                  Arte nas suas mãos,<br/>
+                  <span style={{ fontStyle: "normal" }}>cuidado em cada detalhe.</span>
+                </h2>
+                <button
+                  onClick={() => { setActiveTab("book"); resetBooking(); }}
+                  className="mt-6 px-10 py-4 text-[11px] tracking-widest uppercase transition-all duration-500 hover:scale-105 active:scale-95"
+                  style={{ 
+                    background: "var(--primary)", 
+                    color: "var(--primary-foreground)", 
+                    fontFamily: "'DM Sans', sans-serif", 
+                    fontWeight: 500,
+                    borderRadius: "0",
+                    border: "1px solid var(--primary)"
+                  }}
+                >
+                  Agendar Horário
+                </button>
               </div>
             </motion.div>
 
             {/* Quick Book */}
-            <div className="px-4 mb-8">
-              <button
-                onClick={() => { setActiveTab("book"); resetBooking(); }}
-                className="w-full py-4 rounded-sm text-primary-foreground text-sm tracking-widest uppercase transition-opacity hover:opacity-90 active:scale-[0.99]"
-                style={{ background: "var(--primary)", fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}
-              >
-                Agendar Agora
-              </button>
-            </div>
+            
 
             {/* Services preview */}
-            <div className="px-4 mb-8">
-              <div className="flex items-baseline justify-between mb-4">
-                <h2 className="text-base font-medium text-foreground">Nossos Serviços</h2>
+            <div className="px-4 mb-14">
+              <div className="flex items-baseline justify-between mb-6 border-b border-border pb-3">
+                <h2 className="text-xl text-foreground" style={{ fontFamily: "'Cormorant', serif" }}>Menu de Serviços</h2>
                 <button
-                  className="text-xs text-accent"
-                  style={{ fontFamily: "'DM Mono', monospace" }}
+                  className="text-[10px] tracking-[0.1em] uppercase uppercase hover:opacity-70 transition-opacity"
+                  style={{ color: "var(--accent)" }}
                   onClick={() => { setActiveTab("book"); resetBooking(); }}
                 >
-                  ver todos →
+                  ver todos
                 </button>
               </div>
-              <div className="grid grid-cols-2 gap-3" style={{ transformPerspective: 1000 }}>
+              <div className="flex flex-col">
                 {services.map((cat, i) => {
-                  const Icon = categoryIcon(cat.category);
                   return (
                     <motion.div
                       key={cat.id}
-                      className="bg-card rounded-sm p-4 border border-border cursor-pointer"
-                      style={{ transformOrigin: "top center" }}
-                      initial={shouldReduceMotion ? false : { opacity: 0, rotateX: -10, y: 14 }}
-                      whileInView={{ opacity: 1, rotateX: 0, y: 0 }}
-                      viewport={{ once: true, margin: "-40px" }}
-                      whileHover={shouldReduceMotion ? undefined : { y: -3, borderColor: "var(--primary)" }}
-                      whileTap={{ scale: 0.98 }}
-                      transition={{ duration: 0.55, delay: i * 0.07, ease: [0.16, 1, 0.3, 1] }}
+                      className="py-5 border-b border-border/50 cursor-pointer flex justify-between items-center group"
+                      initial={shouldReduceMotion ? false : { opacity: 0, x: -10 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.5, delay: i * 0.1 }}
                       onClick={() => { setActiveTab("book"); resetBooking(); }}
                     >
-                      <Icon size={18} className="mb-2" style={{ color: "var(--accent)" }} />
-                      <p className="text-sm font-medium text-foreground">{cat.category}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{cat.items.length} opções</p>
+                      <div>
+                        <p className="text-lg text-foreground group-hover:italic transition-all duration-300" style={{ fontFamily: "'Cormorant', serif" }}>{cat.category}</p>
+                        <p className="text-xs text-muted-foreground mt-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>{cat.items.length} {cat.items.length === 1 ? "opção" : "opções"}</p>
+                      </div>
+                      <div className="w-8 h-8 rounded-full border border-border flex items-center justify-center group-hover:bg-primary group-hover:border-primary group-hover:text-primary-foreground transition-all duration-500">
+                        <span className="text-sm font-light">→</span>
+                      </div>
                     </motion.div>
                   );
                 })}
@@ -1319,36 +1431,35 @@ function AppInner() {
 
             {/* Team */}
             {professionals.length > 0 && (
-              <div className="mb-8">
-                <div className="px-4 mb-4">
-                  <h2 className="text-base font-medium text-foreground">Nossa Equipe</h2>
+              <div className="mb-14">
+                <div className="px-4 mb-6 border-b border-border pb-3 mx-4 flex items-baseline justify-between">
+                  <h2 className="text-xl text-foreground" style={{ fontFamily: "'Cormorant', serif" }}>Nossos Especialistas</h2>
                 </div>
-                <div className="flex gap-3 px-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-1" style={{ transformPerspective: 1000 }}>
+                <div className="flex gap-4 px-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-4 snap-x" style={{ transformPerspective: 1000 }}>
                   {professionals.map((p, i) => (
                     <motion.div
                       key={p.id}
-                      className="shrink-0 w-36"
-                      initial={shouldReduceMotion ? false : { opacity: 0, rotateX: -10, y: 14 }}
-                      whileInView={{ opacity: 1, rotateX: 0, y: 0 }}
+                      className="shrink-0 w-44 snap-center group cursor-pointer"
+                      initial={shouldReduceMotion ? false : { opacity: 0, y: 14 }}
+                      whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true, margin: "-40px" }}
-                      transition={{ duration: 0.55, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] }}
+                      transition={{ duration: 0.6, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
                     >
                       <motion.div
-                        className="w-36 h-36 rounded-sm overflow-hidden mb-2 bg-secondary"
-                        animate={shouldReduceMotion ? undefined : { y: [0, -4, 0] }}
-                        transition={shouldReduceMotion ? undefined : { duration: 5 + i * 0.4, repeat: Infinity, ease: "easeInOut", delay: i * 0.3 }}
+                        className="w-44 h-56 overflow-hidden mb-4 bg-secondary relative"
+                        style={{ borderRadius: "0" }}
                       >
                         <img
-                          src={photoUrl(p.img, 300)}
+                          src={photoUrl(p.img, 400)}
                           alt={p.name}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover filter grayscale group-hover:grayscale-0 transition-all duration-700"
                         />
                       </motion.div>
-                      <p className="text-sm font-medium text-foreground">{p.name}</p>
-                      <p className="text-xs text-muted-foreground">{p.specialty}</p>
-                      <div className="flex items-center gap-1 mt-1">
+                      <p className="text-lg text-foreground mb-0.5" style={{ fontFamily: "'Cormorant', serif" }}>{p.name}</p>
+                      <p className="text-[10px] tracking-widest uppercase text-muted-foreground mb-2">{p.specialty}</p>
+                      <div className="flex items-center gap-1">
                         <Star size={10} fill="currentColor" className="text-accent" />
-                        <span className="text-xs" style={{ fontFamily: "'DM Mono', monospace" }}>{p.rating}</span>
+                        <span className="text-[10px]" style={{ fontFamily: "'DM Mono', monospace" }}>{p.rating}</span>
                       </div>
                     </motion.div>
                   ))}
@@ -1374,15 +1485,14 @@ function AppInner() {
         {activeTab === "book" && (
           <div className="pb-28">
             {/* Steps indicator */}
-            <div className="px-4 mb-6">
-              <div className="flex items-center gap-1">
+            <div className="px-4 mb-10 pt-6">
+              <div className="flex items-center gap-1 border-b border-border/50 pb-4">
                 {(["services", "professional", "date", "confirm"] as Step[]).map((s, i) => (
-                  <div key={s} className="flex items-center gap-1">
+                  <div key={s} className="flex-1">
                     <div
-                      className="h-1 rounded-full transition-all duration-300"
+                      className="h-[1px] w-full transition-all duration-500"
                       style={{
-                        width: step === s ? "32px" : "12px",
-                        background: ["services", "professional", "date", "confirm", "success"].indexOf(step) >= i ? "var(--primary)" : "var(--muted)",
+                        background: ["services", "professional", "date", "confirm", "success"].indexOf(step) >= i ? "var(--primary)" : "var(--border)",
                       }}
                     />
                   </div>
@@ -1402,12 +1512,12 @@ function AppInner() {
                 exit={shouldReduceMotion ? undefined : { opacity: 0, rotateY: -10, x: -24 }}
                 transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
               >
-                <p className="text-xs tracking-widest uppercase text-muted-foreground mb-1">Passo 1</p>
+                <p className="text-[10px] tracking-[0.2em] uppercase mb-2" style={{ color: "var(--accent)" }}>Capítulo 1</p>
                 <h2
-                  className="text-2xl text-foreground mb-6"
-                  style={{ fontFamily: "'Cormorant', serif", fontWeight: 400 }}
+                  className="text-4xl text-foreground mb-8"
+                  style={{ fontFamily: "'Cormorant', serif", fontStyle: "italic", fontWeight: 300 }}
                 >
-                  Escolha o serviço
+                  Escolha seu cuidado
                 </h2>
 
                 <div className="flex gap-2 mb-5 overflow-x-auto [scrollbar-width:none] pb-1">
@@ -1435,7 +1545,7 @@ function AppInner() {
                         setBooking((b) => ({ ...b, service: item }));
                         setStep("professional");
                       }}
-                      className="bg-card border rounded-sm p-4 cursor-pointer transition-all hover:border-primary/40 active:scale-[0.99]"
+                      className="bg-transparent border-b p-4 cursor-pointer transition-all hover:bg-secondary/30 active:scale-[0.99]"
                       style={{
                         borderColor: booking.service?.id === item.id ? "var(--primary)" : "var(--border)",
                       }}
@@ -1474,12 +1584,12 @@ function AppInner() {
                 <button onClick={() => setStep("services")} className="flex items-center gap-1 text-muted-foreground text-sm mb-4 hover:text-foreground transition-colors">
                   <ChevronLeft size={16} /> voltar
                 </button>
-                <p className="text-xs tracking-widest uppercase text-muted-foreground mb-1">Passo 2</p>
+                <p className="text-[10px] tracking-[0.2em] uppercase mb-2" style={{ color: "var(--accent)" }}>Capítulo 2</p>
                 <h2
-                  className="text-2xl text-foreground mb-6"
-                  style={{ fontFamily: "'Cormorant', serif", fontWeight: 400 }}
+                  className="text-4xl text-foreground mb-8"
+                  style={{ fontFamily: "'Cormorant', serif", fontStyle: "italic", fontWeight: 300 }}
                 >
-                  Escolha a profissional
+                  Sua especialista
                 </h2>
 
                 <div className="space-y-3">
@@ -1535,12 +1645,12 @@ function AppInner() {
                 <button onClick={() => setStep("professional")} className="flex items-center gap-1 text-muted-foreground text-sm mb-4 hover:text-foreground transition-colors">
                   <ChevronLeft size={16} /> voltar
                 </button>
-                <p className="text-xs tracking-widest uppercase text-muted-foreground mb-1">Passo 3</p>
+                <p className="text-[10px] tracking-[0.2em] uppercase mb-2" style={{ color: "var(--accent)" }}>Capítulo 3</p>
                 <h2
-                  className="text-2xl text-foreground mb-6"
-                  style={{ fontFamily: "'Cormorant', serif", fontWeight: 400 }}
+                  className="text-4xl text-foreground mb-8"
+                  style={{ fontFamily: "'Cormorant', serif", fontStyle: "italic", fontWeight: 300 }}
                 >
-                  Data e horário
+                  O momento perfeito
                 </h2>
 
                 {/* Calendar */}
@@ -1589,9 +1699,10 @@ function AppInner() {
                           key={day}
                           disabled={past}
                           onClick={() => setBooking(b => ({ ...b, date: { day, month: calMonth, year: calYear }, time: null }))}
-                          className="aspect-square flex items-center justify-center text-sm rounded-sm transition-colors"
+                          className="aspect-square flex items-center justify-center text-sm transition-all duration-300"
                           style={{
                             background: selected ? "var(--primary)" : "transparent",
+                            borderRadius: selected ? "50%" : "0",
                             color: past ? "var(--muted-foreground)" : selected ? "var(--primary-foreground)" : isToday ? "var(--accent)" : "var(--foreground)",
                             opacity: past ? 0.4 : 1,
                             fontWeight: isToday && !selected ? 600 : 400,
@@ -1620,7 +1731,7 @@ function AppInner() {
                               key={t}
                               disabled={isSlotBooked(t)}
                               onClick={() => setBooking(b => ({ ...b, time: t }))}
-                              className="py-2 text-sm rounded-sm border transition-colors"
+                              className="py-3 text-sm border transition-all duration-300 hover:border-primary"
                               style={{
                                 background: booking.time === t ? "var(--primary)" : isSlotBooked(t) ? "var(--secondary)" : "var(--card)",
                                 color: booking.time === t ? "var(--primary-foreground)" : isSlotBooked(t) ? "var(--muted-foreground)" : "var(--foreground)",
@@ -1667,15 +1778,15 @@ function AppInner() {
                 <button onClick={() => setStep("date")} className="flex items-center gap-1 text-muted-foreground text-sm mb-4 hover:text-foreground transition-colors">
                   <ChevronLeft size={16} /> voltar
                 </button>
-                <p className="text-xs tracking-widest uppercase text-muted-foreground mb-1">Passo 4</p>
+                <p className="text-[10px] tracking-[0.2em] uppercase mb-2" style={{ color: "var(--accent)" }}>Capítulo 4</p>
                 <h2
-                  className="text-2xl text-foreground mb-6"
-                  style={{ fontFamily: "'Cormorant', serif", fontWeight: 400 }}
+                  className="text-4xl text-foreground mb-8"
+                  style={{ fontFamily: "'Cormorant', serif", fontStyle: "italic", fontWeight: 300 }}
                 >
-                  Confirmar agendamento
+                  Quase lá
                 </h2>
 
-                <div className="bg-card border border-border rounded-sm overflow-hidden mb-5">
+                <div className="bg-transparent border border-border overflow-hidden mb-8">
                   <div className="p-4 border-b border-border">
                     <p className="text-xs tracking-widest uppercase text-muted-foreground mb-3">Resumo</p>
                     <div className="space-y-3">
@@ -1705,7 +1816,7 @@ function AppInner() {
                       </div>
                     </div>
                   </div>
-                  <div className="p-4 flex justify-between items-center" style={{ background: "var(--secondary)" }}>
+                  <div className="p-6 flex justify-between items-center border-t border-border" style={{ background: "var(--secondary)" }}>
                     <span className="text-sm text-muted-foreground">Total</span>
                     <span className="text-lg font-medium" style={{ color: "var(--primary)", fontFamily: "'Cormorant', serif" }}>
                       {booking.service?.price}
@@ -1800,12 +1911,12 @@ function AppInner() {
         {/* APPOINTMENTS */}
         {activeTab === "appointments" && (
           <div className="px-4 pb-28">
-            <p className="text-xs tracking-widest uppercase text-muted-foreground mb-1 pt-2">Meus</p>
+            <p className="text-[10px] tracking-[0.2em] uppercase mb-2 pt-6" style={{ color: "var(--accent)" }}>Histórico</p>
             <h2
-              className="text-2xl text-foreground mb-6"
-              style={{ fontFamily: "'Cormorant', serif", fontWeight: 400 }}
+              className="text-4xl text-foreground mb-10"
+              style={{ fontFamily: "'Cormorant', serif", fontStyle: "italic", fontWeight: 300 }}
             >
-              Agendamentos
+              Meus Agendamentos
             </h2>
 
             {paymentReturnPending && (
@@ -1864,11 +1975,11 @@ function AppInner() {
                   ) : myAppointments.map((appt) => {
                     const key = apptKey(appt);
                     return (
-                    <div key={key} className="bg-card border border-border rounded-sm p-4">
+                    <div key={key} className="bg-transparent border-b border-border/50 pb-6 mb-6">
                       <div className="flex justify-between items-start mb-3">
                         <p className="font-medium text-foreground">{appt.service.name}</p>
                         <span
-                          className="text-xs px-2 py-0.5 rounded-full"
+                          className="text-[10px] tracking-widest uppercase px-3 py-1"
                           style={
                             appt.status === "aguardando_pagamento"
                               ? { background: "#fef3c7", color: "#92400e" }
@@ -2031,9 +2142,10 @@ function AppInner() {
                         key={day}
                         disabled={past}
                         onClick={() => { setReschedDate({ day, month: reschedMonth, year: reschedYear }); setReschedTime(null); }}
-                        className="aspect-square flex items-center justify-center text-sm rounded-sm transition-colors"
+                        className="aspect-square flex items-center justify-center text-sm transition-all duration-300"
                         style={{
                           background: selected ? "var(--primary)" : "transparent",
+                            borderRadius: selected ? "50%" : "0",
                           color: past ? "var(--muted-foreground)" : selected ? "var(--primary-foreground)" : "var(--foreground)",
                           opacity: past ? 0.4 : 1,
                         }}
@@ -2063,7 +2175,7 @@ function AppInner() {
                               key={t}
                               disabled={taken}
                               onClick={() => setReschedTime(t)}
-                              className="py-2 rounded-sm border transition-colors"
+                              className="py-3 border transition-all duration-300 hover:border-primary"
                               style={{
                                 background: reschedTime === t ? "var(--primary)" : taken ? "var(--secondary)" : "var(--card)",
                                 color: reschedTime === t ? "var(--primary-foreground)" : taken ? "var(--muted-foreground)" : "var(--foreground)",
@@ -2104,8 +2216,8 @@ function AppInner() {
 
       {/* Bottom Nav */}
       <nav
-        className="shrink-0 fixed bottom-0 left-0 right-0 flex border-t border-border"
-        style={{ background: "var(--background)", paddingBottom: "env(safe-area-inset-bottom, 16px)" }}
+        className="shrink-0 fixed bottom-6 left-1/2 -translate-x-1/2 flex border border-border/50 shadow-2xl backdrop-blur-md z-50 overflow-hidden"
+        style={{ background: "rgba(253, 251, 247, 0.85)", borderRadius: "100px", padding: "4px 8px" }}
       >
         {([
           { key: "home", label: "Início" },
@@ -2116,23 +2228,27 @@ function AppInner() {
           <button
             key={tab.key}
             onClick={() => { setActiveTab(tab.key); if (tab.key === "book") resetBooking(); }}
-            className="flex-1 py-4 flex flex-col items-center gap-1 transition-colors"
-            style={{ color: activeTab === tab.key ? "var(--primary)" : "var(--muted-foreground)" }}
+            className="px-5 py-3 flex items-center gap-2 transition-all duration-300 rounded-full"
+            style={{ 
+              color: activeTab === tab.key ? "var(--primary-foreground)" : "var(--muted-foreground)",
+              background: activeTab === tab.key ? "var(--primary)" : "transparent"
+            }}
           >
-            {tab.key === "home" && <Sparkles size={18} />}
-            {tab.key === "book" && <Scissors size={18} />}
-            {tab.key === "appointments" && <Clock size={18} />}
-            {tab.key === "admin" && <LayoutDashboard size={18} />}
-            <span
-              className="text-xs"
-              style={{
-                fontFamily: "'DM Mono', monospace",
-                fontSize: "0.65rem",
-                fontWeight: activeTab === tab.key ? 500 : 400,
-              }}
-            >
-              {tab.label}
-            </span>
+            {tab.key === "home" && <Sparkles size={16} />}
+            {tab.key === "book" && <Scissors size={16} />}
+            {tab.key === "appointments" && <Clock size={16} />}
+            {tab.key === "admin" && <LayoutDashboard size={16} />}
+            {activeTab === tab.key && (
+              <span
+                className="text-[10px] tracking-widest uppercase"
+                style={{
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontWeight: 500,
+                }}
+              >
+                {tab.label}
+              </span>
+            )}
           </button>
         ))}
       </nav>
