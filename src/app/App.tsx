@@ -154,6 +154,217 @@ interface Booking {
   time: string | null;
 }
 
+
+function VirtualNailSalon() {
+  const NAIL_CATEGORIES = [
+    { name: "Clássicos & Nudes", colors: [
+      { name: "Renda Fina", hex: "#F3EBE1" },
+      { name: "Nude Elegante", hex: "#D4B896" },
+      { name: "Areia", hex: "#C5B2A6" },
+      { name: "Rosa Chá", hex: "#E0B7B6" },
+      { name: "Capuccino", hex: "#8F6B58" },
+      { name: "Chocolate", hex: "#5C3A21" },
+    ]},
+    { name: "Vermelhos", colors: [
+      { name: "Maçã do Amor", hex: "#9E1121" },
+      { name: "Carmim", hex: "#630A14" },
+      { name: "Vinho Tinto", hex: "#3B0811" },
+      { name: "Cereja", hex: "#B81D33" },
+      { name: "Malbec", hex: "#4A121F" },
+      { name: "Rubi", hex: "#7A0F24" },
+    ]},
+    { name: "Escuros", colors: [
+      { name: "Noite de Gala", hex: "#111111" },
+      { name: "Café Expresso", hex: "#2A1813" },
+      { name: "Azul Marinho", hex: "#182030" },
+      { name: "Uva Profunda", hex: "#2B1422" },
+      { name: "Verde Musgo", hex: "#1A332B" },
+      { name: "Grafite", hex: "#303438" },
+    ]},
+    { name: "Tendências", colors: [
+      { name: "Menta", hex: "#98C9B4" },
+      { name: "Lavanda", hex: "#B098C9" },
+      { name: "Azul Céu", hex: "#98ABC9" },
+      { name: "Pêssego", hex: "#F0B49E" },
+      { name: "Branco Neve", hex: "#FDFDFD" },
+      { name: "Mostarda", hex: "#C6963B" },
+    ]}
+  ];
+
+  const SKIN_TONES = ["#FAD6C6", "#E3B39E", "#C78D71", "#96593A", "#633722", "#3D1F11"];
+  
+  const NAIL_SHAPES = [
+    { id: "square", name: "Quadrada", radius: "20% 20% 45% 45% / 10% 10% 30% 30%", width: "5.4rem", height: "7.5rem", top: "2.5rem" },
+    { id: "almond", name: "Amendoada", radius: "50% 50% 45% 45% / 70% 70% 30% 30%", width: "5rem", height: "8.5rem", top: "1.5rem" },
+    { id: "stiletto", name: "Stiletto", radius: "50% 50% 45% 45% / 100% 100% 30% 30%", width: "4.6rem", height: "9.5rem", top: "0.5rem" },
+  ];
+
+  const [activeCat, setActiveCat] = useState(0);
+  const [color, setColor] = useState(NAIL_CATEGORIES[1].colors[0]); // Default to Maçã do Amor
+  const [skin, setSkin] = useState(SKIN_TONES[2]);
+  const [shape, setShape] = useState(NAIL_SHAPES[1]); // Default to Almond
+
+  return (
+    <div className="px-4 md:px-12 lg:px-24 mb-20 max-w-7xl mx-auto">
+      <div className="flex items-baseline justify-between mb-8 border-b border-border pb-4">
+        <h2 className="text-xl text-foreground" style={{ fontFamily: "'Cormorant', serif" }}>Provador Virtual Realista</h2>
+      </div>
+
+      <div className="flex flex-col md:flex-row gap-12 items-center md:items-start bg-secondary/10 p-6 md:p-12 border border-border/50 backdrop-blur-sm shadow-sm relative overflow-hidden">
+        
+        {/* Visualizer - The 3D Finger Simulator */}
+        <div className="relative w-64 h-96 flex justify-center perspective-[1200px] shrink-0">
+          
+          {/* Finger Base */}
+          <div 
+            className="absolute bottom-[-4rem] w-[9rem] h-[22rem] transition-colors duration-500 flex justify-center z-0"
+            style={{ 
+              backgroundColor: skin,
+              backgroundImage: "linear-gradient(to right, rgba(0,0,0,0.15) 0%, rgba(255,255,255,0.08) 30%, rgba(255,255,255,0.08) 70%, rgba(0,0,0,0.2) 100%)",
+              borderRadius: "45% 45% 10px 10px / 30% 30% 0 0",
+              boxShadow: "0 20px 40px rgba(0,0,0,0.15), inset 0 20px 20px rgba(0,0,0,0.05)"
+            }}
+          >
+            {/* Cuticle / Nail Bed Shadow */}
+            <div className="absolute top-[3rem] w-[5.5rem] h-[8rem] rounded-[50%_50%_45%_45%_/_60%_60%_40%_40%] bg-black/15 blur-[3px]" />
+            <div className="absolute top-[3.2rem] w-[6rem] h-[8.5rem] rounded-[50%_50%_45%_45%_/_60%_60%_40%_40%] shadow-[inset_0_15px_20px_rgba(0,0,0,0.2)]" />
+
+            {/* The Nail */}
+            <motion.div 
+              className="absolute overflow-hidden z-10 origin-bottom"
+              animate={{
+                backgroundColor: color.hex,
+                borderRadius: shape.radius,
+                width: shape.width,
+                height: shape.height,
+                top: shape.top
+              }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              style={{ 
+                boxShadow: "0 10px 20px rgba(0,0,0,0.25), inset 0 -5px 15px rgba(0,0,0,0.5), inset 5px 0 10px rgba(255,255,255,0.1), inset -5px 0 10px rgba(0,0,0,0.15)"
+              }}
+            >
+              {/* Gel Polish Gloss/Reflections */}
+              <div className="absolute top-0 bottom-0 left-[15%] w-[12%] bg-gradient-to-r from-transparent via-white/50 to-transparent blur-[1px] transform -skew-x-6" />
+              <div className="absolute top-[10%] bottom-[10%] right-[15%] w-[5%] bg-gradient-to-r from-transparent via-white/30 to-transparent blur-[1px] transform -skew-x-6" />
+              <div className="absolute top-0 left-0 right-0 h-[25%] bg-gradient-to-b from-white/40 to-transparent opacity-90" />
+              <div className="absolute bottom-0 left-0 right-0 h-[20%] bg-gradient-to-t from-black/50 to-transparent opacity-80 pointer-events-none" />
+            </motion.div>
+
+            {/* Cuticle Fold (Skin overlapping nail base) */}
+            <div 
+              className="absolute top-[9rem] w-[6.8rem] h-[3.5rem] z-20 transition-colors duration-500"
+              style={{
+                backgroundColor: skin,
+                borderRadius: "50% 50% 0 0 / 40% 40% 0 0",
+                backgroundImage: "linear-gradient(to right, rgba(0,0,0,0.15) 0%, rgba(255,255,255,0.05) 50%, rgba(0,0,0,0.2) 100%), linear-gradient(to top, rgba(0,0,0,0) 30%, rgba(0,0,0,0.15) 100%)",
+                boxShadow: "0 -3px 6px rgba(0,0,0,0.15)"
+              }}
+            />
+
+            {/* Knuckle lines for extreme realism */}
+            <div className="absolute top-[14rem] w-[5rem] h-1 border-t-2 border-black/10 rounded-[50%] blur-[0.5px]" />
+            <div className="absolute top-[14.8rem] w-[6rem] h-1 border-t-2 border-black/10 rounded-[50%] blur-[0.5px]" />
+            <div className="absolute top-[15.5rem] w-[5.5rem] h-1 border-t-2 border-black/10 rounded-[50%] blur-[0.5px]" />
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div className="flex-1 w-full z-10 pt-4 md:pt-0">
+          <h3 className="text-3xl mb-2 text-foreground" style={{ fontFamily: "'Cormorant', serif", fontStyle: "italic", fontWeight: 300 }}>
+            Seu Estilo Único
+          </h3>
+          <p className="text-sm text-muted-foreground mb-8 max-w-sm leading-relaxed">
+            Navegue pelo nosso catálogo profissional. Personalize o formato da unha, seu tom de pele e encontre a cor perfeita.
+          </p>
+
+          <div className="mb-8">
+            <div className="flex gap-4 border-b border-border/50 pb-2 mb-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {NAIL_CATEGORIES.map((cat, i) => (
+                <button
+                  key={cat.name}
+                  onClick={() => setActiveCat(i)}
+                  className="shrink-0 pb-2 text-[10px] tracking-widest uppercase transition-colors relative"
+                  style={{ color: activeCat === i ? "var(--foreground)" : "var(--muted-foreground)" }}
+                >
+                  {cat.name}
+                  {activeCat === i && (
+                    <motion.div layoutId="cat-indicator" className="absolute bottom-[-1px] left-0 right-0 h-[1px] bg-foreground" />
+                  )}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
+              {NAIL_CATEGORIES[activeCat].colors.map((c) => (
+                <div key={c.hex} className="flex flex-col items-center gap-2 group cursor-pointer" onClick={() => setColor(c)}>
+                  <div
+                    className="w-10 h-10 rounded-full relative transition-all duration-300 group-hover:scale-110"
+                    style={{ 
+                      backgroundColor: c.hex, 
+                      border: color.hex === c.hex ? "1px solid var(--foreground)" : "1px solid transparent",
+                      padding: "2px",
+                      backgroundClip: "content-box",
+                      boxShadow: "inset 0 2px 4px rgba(255,255,255,0.3), inset 0 -2px 6px rgba(0,0,0,0.3), 0 4px 6px rgba(0,0,0,0.05)" 
+                    }}
+                  />
+                  <span 
+                    className="text-[8px] text-center leading-tight uppercase transition-colors"
+                    style={{ color: color.hex === c.hex ? "var(--foreground)" : "var(--muted-foreground)" }}
+                  >
+                    {c.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-border/50">
+            <div>
+              <p className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-4">Tom de Pele</p>
+              <div className="flex gap-3">
+                {SKIN_TONES.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setSkin(s)}
+                    className="w-8 h-8 rounded-full transition-all duration-300 hover:scale-110"
+                    style={{ 
+                      backgroundColor: s, 
+                      border: skin === s ? "1px solid var(--foreground)" : "1px solid transparent", 
+                      padding: "2px", 
+                      backgroundClip: "content-box",
+                      boxShadow: skin === s ? "0 4px 10px rgba(0,0,0,0.1)" : "none"
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+            
+            <div>
+              <p className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-4">Formato da Unha</p>
+              <div className="flex gap-2">
+                {NAIL_SHAPES.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => setShape(s)}
+                    className="px-4 py-2 text-[9px] tracking-widest uppercase rounded-none transition-all duration-300 border border-border"
+                    style={{ 
+                      backgroundColor: shape.id === s.id ? "var(--foreground)" : "transparent",
+                      color: shape.id === s.id ? "var(--background)" : "var(--muted-foreground)"
+                    }}
+                  >
+                    {s.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
 function AppInner() {
   const shouldReduceMotion = useReducedMotion();
   const [activeTab, setActiveTab] = useState<"home" | "book" | "appointments" | "admin">("home");
@@ -967,7 +1178,7 @@ function AppInner() {
   if (!user) {
     return (
       <motion.div 
-        className="size-full flex flex-col items-center justify-center p-6 overflow-y-auto relative" 
+        className="size-full flex flex-col items-center p-4 md:p-6 overflow-y-auto relative" 
         style={{ fontFamily: "'DM Sans', sans-serif", background: "var(--background)" }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -998,7 +1209,7 @@ function AppInner() {
         </div>
 
         <motion.div 
-          className="w-full max-w-sm py-8 relative z-10"
+          className="w-full max-w-sm md:max-w-md py-8 md:py-12 md:px-10 relative z-10 md:bg-background/40 md:backdrop-blur-xl md:border md:border-border/50 md:shadow-2xl my-auto"
           style={{ transformPerspective: 1200 }}
           initial={{ opacity: 0, rotateX: 15, y: 30 }}
           animate={{ opacity: 1, rotateX: 0, y: 0 }}
@@ -1240,11 +1451,7 @@ function AppInner() {
             </button>
           </div>
 
-          <div className="mt-12 text-center border-t border-border/50 pt-8 opacity-50 hover:opacity-100 transition-opacity duration-500">
-            <p className="text-[9px] tracking-widest uppercase text-muted-foreground mb-2">Acesso Administrador</p>
-            <p className="text-xs text-foreground" style={{ fontFamily: "'DM Mono', monospace" }}>admin@maisonnaile.com</p>
-            <p className="text-xs text-foreground" style={{ fontFamily: "'DM Mono', monospace" }}>Naile@Admin2026</p>
-          </div>
+          
         </motion.div>
       </motion.div>
     );
@@ -1301,7 +1508,7 @@ function AppInner() {
       )}
 
       {/* Header */}
-      <header className="shrink-0 px-6 pt-10 pb-6 flex items-center justify-between z-10 bg-background/80 backdrop-blur-md sticky top-0 border-b border-border/30">
+      <header className="shrink-0 px-6 md:px-12 lg:px-24 pt-10 md:pt-14 pb-6 md:pb-8 flex items-center justify-between z-10 bg-background/80 backdrop-blur-md sticky top-0 border-b border-border/30">
         <div>
           <p className="text-[9px] tracking-[0.2em] uppercase mb-1" style={{ color: "var(--accent)" }}>
             {isAdmin ? "Administração" : profile?.businessId ? "Meu Estúdio" : (viewingBusiness?.businessName || "Minha Agenda Nail")}
@@ -1348,13 +1555,13 @@ function AppInner() {
           <div className="pb-28">
             {/* Hero */}
             <motion.div
-              className="mx-4 overflow-hidden relative mb-12 border-b border-border pb-8"
+              className="mx-4 md:mx-12 lg:mx-24 overflow-hidden relative mb-12 border-b border-border pb-12"
               style={{ transformPerspective: 1000, transformOrigin: "top center" }}
               initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
             >
-              <div className="relative w-full h-[400px] mb-6 overflow-hidden" style={{ borderRadius: '0' }}>
+              <div className="relative w-full h-[400px] md:h-[500px] lg:h-[600px] mb-8 overflow-hidden md:rounded-lg" style={{ borderRadius: '0' }}>
                 <img
                   src="https://images.unsplash.com/photo-1522337660859-02fbefca4702?w=800&h=600&fit=crop&auto=format"
                   alt="Nail art elegante"
@@ -1393,7 +1600,8 @@ function AppInner() {
             
 
             {/* Services preview */}
-            <div className="px-4 mb-14">
+            <VirtualNailSalon />
+            <div className="px-4 md:px-12 lg:px-24 mb-16 max-w-7xl mx-auto">
               <div className="flex items-baseline justify-between mb-6 border-b border-border pb-3">
                 <h2 className="text-xl text-foreground" style={{ fontFamily: "'Cormorant', serif" }}>Menu de Serviços</h2>
                 <button
@@ -1404,11 +1612,11 @@ function AppInner() {
                   ver todos
                 </button>
               </div>
-              <div className="flex flex-col">
+              <div className="flex flex-col md:grid md:grid-cols-2 md:gap-x-16 md:gap-y-4">
                 {services.map((cat, i) => {
                   return (
                     <motion.div
-                      key={cat.id}
+                      key={cat.id || `cat-${i}`}
                       className="py-5 border-b border-border/50 cursor-pointer flex justify-between items-center group"
                       initial={shouldReduceMotion ? false : { opacity: 0, x: -10 }}
                       whileInView={{ opacity: 1, x: 0 }}
@@ -1431,14 +1639,14 @@ function AppInner() {
 
             {/* Team */}
             {professionals.length > 0 && (
-              <div className="mb-14">
-                <div className="px-4 mb-6 border-b border-border pb-3 mx-4 flex items-baseline justify-between">
+              <div className="mb-16 md:px-8 lg:px-20 max-w-7xl mx-auto">
+                <div className="px-4 md:px-0 mb-8 border-b border-border pb-4 mx-4 md:mx-0 flex items-baseline justify-between">
                   <h2 className="text-xl text-foreground" style={{ fontFamily: "'Cormorant', serif" }}>Nossos Especialistas</h2>
                 </div>
-                <div className="flex gap-4 px-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-4 snap-x" style={{ transformPerspective: 1000 }}>
+                <div className="flex gap-6 px-4 md:px-0 overflow-x-auto md:flex-wrap md:justify-center [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-4 snap-x" style={{ transformPerspective: 1000 }}>
                   {professionals.map((p, i) => (
                     <motion.div
-                      key={p.id}
+                      key={p.id || `pro-${i}`}
                       className="shrink-0 w-44 snap-center group cursor-pointer"
                       initial={shouldReduceMotion ? false : { opacity: 0, y: 14 }}
                       whileInView={{ opacity: 1, y: 0 }}
@@ -1468,7 +1676,7 @@ function AppInner() {
             )}
 
             {/* Location */}
-            <div className="mx-4 bg-card border border-border rounded-sm p-4">
+            <div className="mx-4 md:mx-12 lg:mx-24 mb-8 bg-transparent border-t border-border rounded-none p-6">
               <div className="flex items-start gap-3">
                 <MapPin size={16} className="mt-0.5 shrink-0" style={{ color: "var(--accent)" }} />
                 <div>
@@ -1483,7 +1691,7 @@ function AppInner() {
 
         {/* BOOKING FLOW */}
         {activeTab === "book" && (
-          <div className="pb-28">
+          <div className="pb-28 md:max-w-3xl md:mx-auto md:px-8 lg:px-0">
             {/* Steps indicator */}
             <div className="px-4 mb-10 pt-6">
               <div className="flex items-center gap-1 border-b border-border/50 pb-4">
@@ -1523,7 +1731,7 @@ function AppInner() {
                 <div className="flex gap-2 mb-5 overflow-x-auto [scrollbar-width:none] pb-1">
                   {services.map((cat, i) => (
                     <button
-                      key={cat.id}
+                      key={cat.id || `cat-${i}`}
                       onClick={() => setActiveCategory(i)}
                       className="shrink-0 px-4 py-1.5 rounded-full text-sm transition-colors"
                       style={{
@@ -1540,7 +1748,7 @@ function AppInner() {
                 <div className="space-y-3">
                   {(services[activeCategory]?.items || []).map((item) => (
                     <div
-                      key={item.id}
+                      key={item.id || `item-${item.name}-${Math.random()}`}
                       onClick={() => {
                         setBooking((b) => ({ ...b, service: item }));
                         setStep("professional");
@@ -1595,7 +1803,7 @@ function AppInner() {
                 <div className="space-y-3">
                   {professionals.map((pro) => (
                     <div
-                      key={pro.id}
+                      key={pro.id || `pro-${pro.name}`}
                       onClick={() => {
                         setBooking((b) => ({ ...b, professional: pro }));
                         setStep("date");
@@ -1910,7 +2118,7 @@ function AppInner() {
 
         {/* APPOINTMENTS */}
         {activeTab === "appointments" && (
-          <div className="px-4 pb-28">
+          <div className="px-4 pb-28 md:max-w-4xl md:mx-auto md:px-12 lg:px-0">
             <p className="text-[10px] tracking-[0.2em] uppercase mb-2 pt-6" style={{ color: "var(--accent)" }}>Histórico</p>
             <h2
               className="text-4xl text-foreground mb-10"
@@ -1937,7 +2145,7 @@ function AppInner() {
             {notifications.length > 0 && (
               <div className="space-y-2 mb-6">
                 {notifications.map((n) => (
-                  <div key={n.key} className="p-3 rounded-sm border flex items-start gap-3" style={{ background: "var(--secondary)", borderColor: "var(--border)" }}>
+                  <div key={n.key || `notif-${Math.random()}`} className="p-3 rounded-sm border flex items-start gap-3" style={{ background: "var(--secondary)", borderColor: "var(--border)" }}>
                     <div className="flex-1">
                       <p className="text-xs uppercase tracking-widest mb-1" style={{ color: "var(--primary)" }}>
                         Aviso do estúdio
@@ -2216,7 +2424,7 @@ function AppInner() {
 
       {/* Bottom Nav */}
       <nav
-        className="shrink-0 fixed bottom-6 left-1/2 -translate-x-1/2 flex border border-border/50 shadow-2xl backdrop-blur-md z-50 overflow-hidden"
+        className="shrink-0 fixed bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 flex border border-border/50 shadow-2xl backdrop-blur-md z-50 overflow-hidden md:min-w-[400px] justify-center"
         style={{ background: "rgba(253, 251, 247, 0.85)", borderRadius: "100px", padding: "4px 8px" }}
       >
         {([

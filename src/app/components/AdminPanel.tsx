@@ -232,7 +232,7 @@ export function AdminPanel({
   }
 
   return (
-    <div className="pb-28">
+    <div className="pb-32 md:max-w-5xl md:mx-auto md:px-8 lg:px-0">
       <div className="px-4 pt-2">
         <p className="text-xs tracking-widest uppercase text-muted-foreground mb-1">Painel</p>
         <h2 className="text-2xl text-foreground mb-1" style={{ fontFamily: "'Cormorant', serif", fontWeight: 400 }}>
@@ -706,7 +706,7 @@ function ServicesManager({ services, saveBusinessData }: any) {
       {err && <div className="mb-3 p-3 rounded-sm bg-red-50 border border-red-200 text-red-600 text-sm">{err}</div>}
       <div className="space-y-6">
         {draft.map((cat: any, ci: number) => (
-          <div key={cat.id ?? ci}>
+          <div key={cat.id || `cat-${ci}`}>
             <div className="flex items-center gap-2 mb-2">
               <input
                 value={cat.category}
@@ -724,7 +724,7 @@ function ServicesManager({ services, saveBusinessData }: any) {
             </div>
             <div className="space-y-3">
               {cat.items.map((item: any, ii: number) => (
-                <div key={item.id} className="bg-card border border-border rounded-sm p-3">
+                <div key={item.id || `item-${ii}`} className="bg-card border border-border rounded-sm p-3">
                   <input
                     value={item.name}
                     onChange={(e) => updateItem(ci, ii, "name", e.target.value)}
@@ -859,7 +859,7 @@ function TeamManager({ professionals, saveBusinessData, uploadPhoto }: any) {
       {err && <div className="mb-3 p-3 rounded-sm bg-red-50 border border-red-200 text-red-600 text-sm">{err}</div>}
       <div className="space-y-3">
         {draft.map((pro: any, i: number) => (
-          <div key={pro.id} className="bg-card border border-border rounded-sm p-3 flex gap-3">
+          <div key={pro.id || `pro-${i}`} className="bg-card border border-border rounded-sm p-3 flex gap-3">
             <div className="shrink-0">
               <div className="w-16 h-16 rounded-sm overflow-hidden bg-secondary mb-1">
                 {pro.img ? (
