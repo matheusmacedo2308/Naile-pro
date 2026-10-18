@@ -169,6 +169,31 @@ function isEmailExistsError(error: any) {
   );
 }
 
+function isRetryableAuthError(error: any) {
+  if (!error) return false;
+  return (
+    error.name === 'AuthRetryableFetchError' ||
+    (error.__isAuthError && error.status === 500)
+  );
+}
+
+async function createUserWithRetry(
+  supabase: any,
+  payload: { email: string; password: string; user_metadata: Record<string, any>; email_confirm: boolean },
+  maxAttempts = 3
+): Promise<{ data: any; error: any }> {
+  let lastError: any;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const result = await supabase.auth.admin.createUser(payload);
+    if (!result.error || !isRetryableAuthError(result.error)) return result;
+    lastError = result.error;
+    if (attempt < maxAttempts) {
+      await new Promise((r) => setTimeout(r, 300 * attempt));
+    }
+  }
+  return { data: null, error: lastError };
+}
+
 // Helper: resolve the authenticated user's profile from the Authorization header
 async function getAuthedProfile(c: any) {
   const accessToken = c.req.header('Authorization')?.split(' ')[1];
@@ -555,7 +580,7 @@ app.post('/register-business', async (c) => {
     const alreadyUsedTrial = await kv.get(`trial_used:${documentDigits}`);
 
     // Create the auth user. Auto-confirm the email since no email server is configured.
-    const { data, error } = await supabase.auth.admin.createUser({
+    const { data, error } = await createUserWithRetry(supabase, {
       email,
       password,
       user_metadata: { name: ownerName },
@@ -565,6 +590,10 @@ app.post('/register-business', async (c) => {
       if (isEmailExistsError(error)) {
         console.log('Business registration blocked — email already registered:', email);
         return c.json({ error: 'Este email já está cadastrado. Faça login ou use outro email.' }, 409);
+      }
+      if (isRetryableAuthError(error)) {
+        console.error('Transient auth error during business registration (retries exhausted):', error);
+        return c.json({ error: 'Serviço temporariamente indisponível. Tente novamente em alguns segundos.' }, 503);
       }
       console.error('Error creating business owner user during business registration:', error);
       return c.json({ error: error.message }, 400);
@@ -638,7 +667,7 @@ app.post('/register-client', async (c) => {
       return c.json({ error: 'Email inválido. Confira se não tem espaços ou caracteres extras no final.' }, 400);
     }
 
-    const { data, error } = await supabase.auth.admin.createUser({
+    const { data, error } = await createUserWithRetry(supabase, {
       email,
       password,
       user_metadata: { name },
@@ -649,6 +678,10 @@ app.post('/register-client', async (c) => {
       if (isEmailExistsError(error)) {
         console.log('Client registration blocked — email already registered:', email);
         return c.json({ error: 'Este email já está cadastrado. Faça login ou use outro email.' }, 409);
+      }
+      if (isRetryableAuthError(error)) {
+        console.error('Transient auth error during client registration (retries exhausted):', error);
+        return c.json({ error: 'Serviço temporariamente indisponível. Tente novamente em alguns segundos.' }, 503);
       }
       console.error('Error creating client user during client registration:', error);
       return c.json({ error: error.message }, 400);

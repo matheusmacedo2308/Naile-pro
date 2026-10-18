@@ -1291,7 +1291,8 @@ function AppInner() {
           <form onSubmit={handleAuth} className="space-y-5">
             <AnimatePresence mode="popLayout">
               {authError && (
-                <motion.div 
+                <motion.div
+                  key="auth-error"
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
@@ -1301,7 +1302,8 @@ function AppInner() {
                 </motion.div>
               )}
               {authNotice && (
-                <motion.div 
+                <motion.div
+                  key="auth-notice"
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
@@ -1315,6 +1317,7 @@ function AppInner() {
             <AnimatePresence mode="popLayout">
               {authMode === "register" && accountType === "business" && (
                 <motion.div
+                  key="field-studio-name"
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 10 }}
@@ -1327,6 +1330,7 @@ function AppInner() {
 
               {authMode === "register" && accountType === "business" && (
                 <motion.div
+                  key="field-cpf-cnpj"
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 10 }}
@@ -1339,6 +1343,7 @@ function AppInner() {
 
               {authMode === "register" && (
                 <motion.div
+                  key="field-full-name"
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 10 }}
@@ -1353,6 +1358,7 @@ function AppInner() {
 
               {authMode === "register" && (
                 <motion.div
+                  key="field-phone"
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 10 }}
@@ -1372,13 +1378,14 @@ function AppInner() {
                 </motion.div>
               )}
 
-              <motion.div layout className="space-y-1 mt-5">
+              <motion.div key="field-email" layout className="space-y-1 mt-5">
                 <label className="block text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Email</label>
                 <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} placeholder="seu@email.com" />
               </motion.div>
 
               {authMode !== "forgot" && (
                 <motion.div
+                  key="field-password"
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 10 }}
@@ -1508,26 +1515,33 @@ function AppInner() {
       )}
 
       {/* Header */}
-      <header className="shrink-0 px-6 md:px-12 lg:px-24 pt-10 md:pt-14 pb-6 md:pb-8 flex items-center justify-between z-10 bg-background/80 backdrop-blur-md sticky top-0 border-b border-border/30">
-        <div>
-          <p className="text-[9px] tracking-[0.2em] uppercase mb-1" style={{ color: "var(--accent)" }}>
-            {isAdmin ? "Administração" : profile?.businessId ? "Meu Estúdio" : (viewingBusiness?.businessName || "Minha Agenda Nail")}
-          </p>
+      <header className="shrink-0 px-6 md:px-12 lg:px-24 py-5 flex items-center justify-between z-10 bg-background/90 backdrop-blur-lg sticky top-0 border-b border-border/25">
+        {/* Wordmark */}
+        <div className="flex items-baseline gap-3">
           <h1
-            className="text-3xl text-foreground leading-none"
-            style={{ fontFamily: "'Cormorant', serif", fontStyle: "italic", fontWeight: 300, letterSpacing: "0.02em" }}
+            className="text-2xl text-foreground leading-none tracking-tight"
+            style={{ fontFamily: "'Cormorant', serif", fontStyle: "italic", fontWeight: 300 }}
           >
-            {profile?.name?.split(" ")[0] ? `Olá, ${profile.name.split(" ")[0]}` : "Minha Agenda"}
+            {viewingBusiness?.businessName || "Nailê Pro"}
           </h1>
+          <div className="h-3 w-px bg-border hidden sm:block" />
+          <p className="text-[9px] tracking-[0.22em] uppercase hidden sm:block" style={{ color: "var(--muted-foreground)", fontFamily: "'DM Sans', sans-serif" }}>
+            {isAdmin ? "Administração" : profile?.name?.split(" ")[0] ? `Olá, ${profile.name.split(" ")[0]}` : "Plataforma"}
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button className="p-2 rounded-full border border-border/50 hover:bg-secondary transition-all hover:scale-105">
+        <div className="flex items-center gap-2">
+          <button className="p-2 hover:opacity-60 transition-opacity" aria-label="Instagram">
             <Instagram size={14} className="text-muted-foreground" />
           </button>
-          <button className="p-2 rounded-full border border-border/50 hover:bg-secondary transition-all hover:scale-105">
+          <button className="p-2 hover:opacity-60 transition-opacity" aria-label="Telefone">
             <Phone size={14} className="text-muted-foreground" />
           </button>
-          <button onClick={handleLogout} className="p-2 text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-[0.1em] underline decoration-muted-foreground/30 underline-offset-4">
+          <div className="w-px h-4 bg-border/60 mx-1" />
+          <button
+            onClick={handleLogout}
+            className="text-[9px] tracking-[0.18em] uppercase text-muted-foreground hover:text-foreground transition-colors px-1"
+            style={{ fontFamily: "'DM Sans', sans-serif" }}
+          >
             Sair
           </button>
         </div>
@@ -1553,46 +1567,104 @@ function AppInner() {
         {/* HOME */}
         {activeTab === "home" && (
           <div className="pb-28">
-            {/* Hero */}
+            {/* Hero Editorial */}
             <motion.div
-              className="mx-4 md:mx-12 lg:mx-24 overflow-hidden relative mb-12 border-b border-border pb-12"
-              style={{ transformPerspective: 1000, transformOrigin: "top center" }}
-              initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              className="relative overflow-hidden border-b border-border/40 mb-16"
+              initial={shouldReduceMotion ? false : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
             >
-              <div className="relative w-full h-[400px] md:h-[500px] lg:h-[600px] mb-8 overflow-hidden md:rounded-lg" style={{ borderRadius: '0' }}>
-                <img
-                  src="https://images.unsplash.com/photo-1522337660859-02fbefca4702?w=800&h=600&fit=crop&auto=format"
-                  alt="Nail art elegante"
-                  className="w-full h-full object-cover scale-105"
-                  style={{ filter: "brightness(0.85) contrast(1.1) saturate(0.9)" }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[var(--background)] to-transparent opacity-80" />
+              {/* Faint decorative grid lines */}
+              <div className="absolute inset-0 pointer-events-none" aria-hidden>
+                <div className="absolute top-0 left-1/3 w-px h-full bg-border/30" />
+                <div className="absolute top-0 right-1/4 w-px h-full bg-border/20" />
+                <div className="absolute top-1/2 left-0 right-0 h-px bg-border/20" />
               </div>
-              <div className="relative text-center px-4 -mt-24 z-10">
-                <p className="text-[10px] tracking-[0.3em] uppercase mb-4" style={{ color: "var(--accent)" }}>O Refúgio do Cuidado</p>
-                <h2
-                  className="text-5xl leading-[0.9] mb-4 text-foreground"
-                  style={{ fontFamily: "'Cormorant', serif", fontStyle: "italic", fontWeight: 300 }}
+
+              {/* Ambient colour orbs */}
+              <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden>
+                <motion.div
+                  className="absolute -top-32 -right-32 w-[480px] h-[480px] rounded-full blur-[120px] opacity-20"
+                  style={{ background: "var(--primary)" }}
+                  animate={{ scale: [1, 1.08, 1], x: [0, 12, 0] }}
+                  transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+                />
+                <motion.div
+                  className="absolute -bottom-24 -left-20 w-[360px] h-[360px] rounded-full blur-[100px] opacity-15"
+                  style={{ background: "var(--accent)" }}
+                  animate={{ scale: [1, 1.12, 1], y: [0, -16, 0] }}
+                  transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+                />
+              </div>
+
+              <div className="relative px-6 md:px-12 lg:px-24 pt-14 pb-16 md:pt-20 md:pb-24">
+                {/* Eyebrow */}
+                <motion.div
+                  className="flex items-center gap-4 mb-10"
+                  initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2, duration: 0.7 }}
                 >
-                  Arte nas suas mãos,<br/>
-                  <span style={{ fontStyle: "normal" }}>cuidado em cada detalhe.</span>
-                </h2>
-                <button
-                  onClick={() => { setActiveTab("book"); resetBooking(); }}
-                  className="mt-6 px-10 py-4 text-[11px] tracking-widest uppercase transition-all duration-500 hover:scale-105 active:scale-95"
-                  style={{ 
-                    background: "var(--primary)", 
-                    color: "var(--primary-foreground)", 
-                    fontFamily: "'DM Sans', sans-serif", 
-                    fontWeight: 500,
-                    borderRadius: "0",
-                    border: "1px solid var(--primary)"
-                  }}
+                  <div className="h-px w-12 bg-primary/60" />
+                  <p className="text-[9px] tracking-[0.35em] uppercase" style={{ color: "var(--accent)", fontFamily: "'DM Sans', sans-serif" }}>
+                    O Refúgio do Cuidado
+                  </p>
+                </motion.div>
+
+                {/* Main heading — asymmetric two-line display */}
+                <div className="max-w-3xl">
+                  <motion.h2
+                    className="leading-[0.88] text-foreground mb-3"
+                    style={{ fontFamily: "'Cormorant', serif", fontWeight: 300, fontSize: "clamp(3.2rem, 8vw, 7rem)" }}
+                    initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                  >
+                    Arte nas suas mãos,
+                  </motion.h2>
+                  <motion.h2
+                    className="leading-[0.88] mb-10"
+                    style={{ fontFamily: "'Cormorant', serif", fontWeight: 300, fontStyle: "italic", fontSize: "clamp(3.2rem, 8vw, 7rem)", color: "var(--primary)" }}
+                    initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.42, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                  >
+                    cuidado em cada detalhe.
+                  </motion.h2>
+
+                  {/* Sub copy + CTA row */}
+                  <motion.div
+                    className="flex flex-col sm:flex-row sm:items-end gap-6 sm:gap-10"
+                    initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.58, duration: 0.7 }}
+                  >
+                    <p className="text-sm text-muted-foreground leading-relaxed max-w-xs" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                      Serviços premium de manicure e nail art para quem não abre mão de excelência.
+                    </p>
+                    <button
+                      onClick={() => { setActiveTab("book"); resetBooking(); }}
+                      className="shrink-0 group flex items-center gap-3 px-8 py-4 text-[10px] tracking-[0.2em] uppercase transition-all duration-500 hover:gap-5 border border-primary"
+                      style={{ background: "var(--primary)", color: "var(--primary-foreground)", fontFamily: "'DM Sans', sans-serif" }}
+                    >
+                      Agendar Horário
+                      <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
+                    </button>
+                  </motion.div>
+                </div>
+
+                {/* Decorative number / ornament bottom-right */}
+                <motion.div
+                  className="absolute bottom-8 right-8 md:right-16 text-right hidden sm:block"
+                  initial={shouldReduceMotion ? false : { opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.9, duration: 1 }}
                 >
-                  Agendar Horário
-                </button>
+                  <p className="text-[6.5rem] leading-none font-thin select-none pointer-events-none"
+                    style={{ fontFamily: "'Cormorant', serif", color: "var(--border)", letterSpacing: "-0.04em" }}>
+                    №1
+                  </p>
+                </motion.div>
               </div>
             </motion.div>
 
@@ -1601,73 +1673,129 @@ function AppInner() {
 
             {/* Services preview */}
             <VirtualNailSalon />
-            <div className="px-4 md:px-12 lg:px-24 mb-16 max-w-7xl mx-auto">
-              <div className="flex items-baseline justify-between mb-6 border-b border-border pb-3">
-                <h2 className="text-xl text-foreground" style={{ fontFamily: "'Cormorant', serif" }}>Menu de Serviços</h2>
-                <button
-                  className="text-[10px] tracking-[0.1em] uppercase uppercase hover:opacity-70 transition-opacity"
-                  style={{ color: "var(--accent)" }}
-                  onClick={() => { setActiveTab("book"); resetBooking(); }}
+            <div className="px-6 md:px-12 lg:px-24 mb-20 max-w-7xl mx-auto">
+              {/* Section header */}
+              <div className="flex items-center gap-4 mb-10">
+                <div className="h-px flex-1 bg-border/50" />
+                <h2
+                  className="text-[10px] tracking-[0.3em] uppercase shrink-0"
+                  style={{ fontFamily: "'DM Sans', sans-serif", color: "var(--muted-foreground)" }}
                 >
-                  ver todos
-                </button>
+                  Menu de Serviços
+                </h2>
+                <div className="h-px flex-1 bg-border/50" />
               </div>
-              <div className="flex flex-col md:grid md:grid-cols-2 md:gap-x-16 md:gap-y-4">
-                {services.map((cat, i) => {
-                  return (
-                    <motion.div
-                      key={cat.id || `cat-${i}`}
-                      className="py-5 border-b border-border/50 cursor-pointer flex justify-between items-center group"
-                      initial={shouldReduceMotion ? false : { opacity: 0, x: -10 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.5, delay: i * 0.1 }}
-                      onClick={() => { setActiveTab("book"); resetBooking(); }}
-                    >
-                      <div>
-                        <p className="text-lg text-foreground group-hover:italic transition-all duration-300" style={{ fontFamily: "'Cormorant', serif" }}>{cat.category}</p>
-                        <p className="text-xs text-muted-foreground mt-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>{cat.items.length} {cat.items.length === 1 ? "opção" : "opções"}</p>
-                      </div>
-                      <div className="w-8 h-8 rounded-full border border-border flex items-center justify-center group-hover:bg-primary group-hover:border-primary group-hover:text-primary-foreground transition-all duration-500">
-                        <span className="text-sm font-light">→</span>
-                      </div>
-                    </motion.div>
-                  );
-                })}
+
+              {/* Service rows — full-width editorial list */}
+              <div className="divide-y divide-border/40">
+                {services.map((cat, i) => (
+                  <motion.button
+                    key={cat.id || `cat-${i}`}
+                    className="w-full py-6 md:py-7 flex justify-between items-center group text-left cursor-pointer"
+                    initial={shouldReduceMotion ? false : { opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: i * 0.08 }}
+                    onClick={() => { setActiveTab("book"); resetBooking(); }}
+                  >
+                    <div className="flex items-baseline gap-5 md:gap-8">
+                      <span
+                        className="text-[10px] tabular-nums select-none"
+                        style={{ fontFamily: "'DM Mono', monospace", color: "var(--border)" }}
+                      >
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      <span
+                        className="text-2xl md:text-3xl text-foreground group-hover:italic transition-all duration-400 leading-none"
+                        style={{ fontFamily: "'Cormorant', serif", fontWeight: 300 }}
+                      >
+                        {cat.category}
+                      </span>
+                      <span
+                        className="text-[10px] tracking-widest uppercase text-muted-foreground hidden md:inline"
+                        style={{ fontFamily: "'DM Sans', sans-serif" }}
+                      >
+                        {cat.items.length} {cat.items.length === 1 ? "serviço" : "serviços"}
+                      </span>
+                    </div>
+                    <span
+                      className="text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-300 text-lg"
+                    >→</span>
+                  </motion.button>
+                ))}
+              </div>
+
+              <div className="mt-8 text-right">
+                <button
+                  onClick={() => { setActiveTab("book"); resetBooking(); }}
+                  className="text-[9px] tracking-[0.25em] uppercase text-muted-foreground hover:text-foreground transition-colors border-b border-muted-foreground/30 hover:border-foreground pb-0.5"
+                  style={{ fontFamily: "'DM Sans', sans-serif" }}
+                >
+                  Ver todos os serviços
+                </button>
               </div>
             </div>
 
             {/* Team */}
             {professionals.length > 0 && (
-              <div className="mb-16 md:px-8 lg:px-20 max-w-7xl mx-auto">
-                <div className="px-4 md:px-0 mb-8 border-b border-border pb-4 mx-4 md:mx-0 flex items-baseline justify-between">
-                  <h2 className="text-xl text-foreground" style={{ fontFamily: "'Cormorant', serif" }}>Nossos Especialistas</h2>
+              <div className="mb-20 px-6 md:px-12 lg:px-24 max-w-7xl mx-auto">
+                <div className="flex items-center gap-4 mb-10">
+                  <div className="h-px flex-1 bg-border/50" />
+                  <h2
+                    className="text-[10px] tracking-[0.3em] uppercase shrink-0"
+                    style={{ fontFamily: "'DM Sans', sans-serif", color: "var(--muted-foreground)" }}
+                  >
+                    Especialistas
+                  </h2>
+                  <div className="h-px flex-1 bg-border/50" />
                 </div>
-                <div className="flex gap-6 px-4 md:px-0 overflow-x-auto md:flex-wrap md:justify-center [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-4 snap-x" style={{ transformPerspective: 1000 }}>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-px bg-border/30">
                   {professionals.map((p, i) => (
                     <motion.div
                       key={p.id || `pro-${i}`}
-                      className="shrink-0 w-44 snap-center group cursor-pointer"
-                      initial={shouldReduceMotion ? false : { opacity: 0, y: 14 }}
-                      whileInView={{ opacity: 1, y: 0 }}
+                      className="group relative overflow-hidden bg-background cursor-pointer"
+                      initial={shouldReduceMotion ? false : { opacity: 0 }}
+                      whileInView={{ opacity: 1 }}
                       viewport={{ once: true, margin: "-40px" }}
-                      transition={{ duration: 0.6, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
+                      transition={{ duration: 0.6, delay: i * 0.12, ease: [0.16, 1, 0.3, 1] }}
+                      onClick={() => { setActiveTab("book"); resetBooking(); }}
                     >
-                      <motion.div
-                        className="w-44 h-56 overflow-hidden mb-4 bg-secondary relative"
-                        style={{ borderRadius: "0" }}
-                      >
+                      {/* Photo with sepia/muted treatment */}
+                      <div className="aspect-[3/4] overflow-hidden bg-muted">
                         <img
-                          src={photoUrl(p.img, 400)}
+                          src={photoUrl(p.img, 600)}
                           alt={p.name}
-                          className="w-full h-full object-cover filter grayscale group-hover:grayscale-0 transition-all duration-700"
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                          style={{ filter: "sepia(0.15) contrast(1.05) brightness(0.97)" }}
                         />
-                      </motion.div>
-                      <p className="text-lg text-foreground mb-0.5" style={{ fontFamily: "'Cormorant', serif" }}>{p.name}</p>
-                      <p className="text-[10px] tracking-widest uppercase text-muted-foreground mb-2">{p.specialty}</p>
-                      <div className="flex items-center gap-1">
-                        <Star size={10} fill="currentColor" className="text-accent" />
-                        <span className="text-[10px]" style={{ fontFamily: "'DM Mono', monospace" }}>{p.rating}</span>
+                        {/* Overlay on hover */}
+                        <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/10 transition-all duration-500" />
+                      </div>
+
+                      {/* Info bar */}
+                      <div className="p-4 border-t border-border/30">
+                        <p
+                          className="text-base leading-tight text-foreground mb-0.5"
+                          style={{ fontFamily: "'Cormorant', serif", fontWeight: 400 }}
+                        >
+                          {p.name}
+                        </p>
+                        <p
+                          className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground"
+                          style={{ fontFamily: "'DM Sans', sans-serif" }}
+                        >
+                          {p.specialty}
+                        </p>
+                        <div className="flex items-center gap-1.5 mt-2">
+                          <Star size={9} fill="currentColor" style={{ color: "var(--primary)" }} />
+                          <span
+                            className="text-[10px] text-muted-foreground"
+                            style={{ fontFamily: "'DM Mono', monospace" }}
+                          >
+                            {p.rating} · {p.reviews} avaliações
+                          </span>
+                        </div>
                       </div>
                     </motion.div>
                   ))}
@@ -1676,16 +1804,19 @@ function AppInner() {
             )}
 
             {/* Location */}
-            <div className="mx-4 md:mx-12 lg:mx-24 mb-8 bg-transparent border-t border-border rounded-none p-6">
-              <div className="flex items-start gap-3">
-                <MapPin size={16} className="mt-0.5 shrink-0" style={{ color: "var(--accent)" }} />
-                <div>
-                  <p className="text-sm font-medium text-foreground">
-                    {(isOwner ? myBusiness?.address : viewingBusiness?.address) || "Endereço a definir pelo estabelecimento"}
+            {(isOwner ? myBusiness?.address : viewingBusiness?.address) && (
+              <div className="px-6 md:px-12 lg:px-24 mb-8 max-w-7xl mx-auto">
+                <div className="border-t border-border/40 pt-8 flex items-center gap-4">
+                  <MapPin size={13} className="shrink-0" style={{ color: "var(--primary)" }} />
+                  <p
+                    className="text-xs text-muted-foreground tracking-wide"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    {isOwner ? myBusiness?.address : viewingBusiness?.address}
                   </p>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
