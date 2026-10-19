@@ -1,4 +1,4 @@
-# Nailê Pro
+# Minha agenda Nail
 
 Plataforma SaaS multi-tenant de agendamentos para salões de beleza e estúdios de unhas, com experiência visual premium e arquitetura escalável.
 
@@ -6,12 +6,11 @@ Plataforma SaaS multi-tenant de agendamentos para salões de beleza e estúdios 
 
 ## Visão Geral
 
-Nailê Pro é um sistema completo de gestão e agendamento online voltado para o mercado de beleza. A plataforma suporta múltiplos estúdios (tenants), onde cada empresa gerencia de forma independente seu catálogo de serviços, equipe de profissionais e agenda — enquanto os clientes finais podem marcar, remarcar e cancelar horários com zero conflito de horários.
+Minha agenda Nail é um sistema completo de gestão e agendamento online voltado para o mercado de beleza. A plataforma suporta múltiplos estúdios (tenants), onde cada empresa gerencia de forma independente seu catálogo de serviços, equipe de profissionais e agenda — enquanto os clientes finais podem marcar, remarcar e cancelar horários com zero conflito de horários.
 
 ### Diferenciais
 
 - **Multi-tenant** — cada estúdio opera em ambiente isolado com dados e configurações próprias
-- **Provador Virtual Realista** — simulação hiper-realista de esmaltes em CSS puro, com 24 cores profissionais, 6 tons de pele e 3 formatos de unha
 - **Design premium editorial** — estética "warm editorial" com glassmorphism, animações 3D e efeitos de scroll sofisticados
 - **Responsivo total** — experiência consistente em mobile, tablet e desktop
 - **Controle de acesso granular** — três níveis de permissão: superadmin, admin da empresa e cliente
@@ -97,7 +96,7 @@ Platform (Superadmin)
 |---|---|
 | **Superadmin** | Gerencia todos os tenants, visualiza métricas globais, configura planos |
 | **Admin** | Gerencia seu estúdio: serviços, profissionais, agenda, relatórios |
-| **Cliente** | Agenda, reagenda e cancela horários; acessa histórico e provador virtual |
+| **Cliente** | Agenda, reagenda e cancela horários; acessa seu histórico |
 
 ---
 
@@ -106,7 +105,6 @@ Platform (Superadmin)
 ### Para Clientes
 - Agendamento online com seleção de serviço, profissional, data e horário
 - Reagendamento e cancelamento com política configurável pelo estúdio
-- Provador virtual de esmaltes antes do agendamento
 - Histórico de atendimentos e favoritos
 
 ### Para Admins do Estúdio
@@ -119,18 +117,6 @@ Platform (Superadmin)
 - Painel de controle de todos os tenants cadastrados
 - Métricas globais da plataforma
 - Gerenciamento de planos e limites por tenant
-
----
-
-## Provador Virtual
-
-O Provador Virtual é um diferencial exclusivo da plataforma, renderizado inteiramente em CSS sem dependências externas:
-
-- **24 cores profissionais** organizadas em 5 categorias (Neutros, Nude, Rosa, Vermelhos, Especiais)
-- **6 tons de pele** (porcelana ao chocolate)
-- **3 formatos de unha** (amendoada, quadrada, stiletto)
-- Renderização hiper-realista com cutícula, reflexos de gel e linhas de articulação
-- Permite ao cliente visualizar o resultado antes de agendar
 
 ---
 

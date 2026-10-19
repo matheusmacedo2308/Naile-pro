@@ -1,0 +1,14 @@
+{
+  "title": "Minha agenda Nail",
+  "description": "Agendamentos para salões de beleza e estúdios de unhas.",
+  "robots": {
+    "index": false
+  },
+  "icons": {
+    "icon": "/favicon.svg"
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
